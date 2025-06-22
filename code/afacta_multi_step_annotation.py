@@ -1,9 +1,10 @@
 import pandas as pd
 import argparse
 import random
-import os
+# import os
 import time
-from langchain.chat_models import ChatOpenAI
+# from langchain.chat_models import ChatOpenAI
+from langchain.chat_models import ChatOllama
 from langchain.schema import (
     HumanMessage,
     SystemMessage
@@ -12,7 +13,7 @@ import json
 import asyncio
 import numpy as np
 
-os.environ["OPENAI_API_KEY"] = "sk-xxx"
+# os.environ["OPENAI_API_KEY"] = "sk-xxx"
 
 SYSTEM_PROMPT = """You are an AI assistant who helps fact-checkers to identify fact-like information in statements.
 """
@@ -116,7 +117,8 @@ def majority_vote_p1_opinion(answer_lists):
         candidates = ['Opinion with fact', 'Fact', 'Opinion']
         max_num = np.max([mix_count, fact_count, opinion_count])
         if max_num > total_ans_num // 3 + 1:
-            final_answer.append(candidates[np.argmax([mix_count, fact_count, opinion_count])])
+            final_answer.append(candidates[np.argmax(
+                [mix_count, fact_count, opinion_count])])
         else:
             final_answer.append('Opinion with fact')
         confusion.append(total_ans_num - max_num)
@@ -193,7 +195,7 @@ def parse_part2(all_answers, keys):
 def batchify_list(input_list, batch_size):
     batches = []
     for i in range(0, len(input_list), batch_size):
-        batches.append(input_list[i:i+batch_size])
+        batches.append(input_list[i:i + batch_size])
     return batches
 
 
@@ -214,7 +216,8 @@ async def async_api_call(llm, messages, gen_num, batch_size=10):
     for b in batches:
         await asyncio.sleep(0.1)
         outputs = await llm.agenerate(b, n=gen_num)
-        output_texts = [[g[i].text for i in range(gen_num)] for g in outputs.generations]
+        output_texts = [[g[i].text for i in range(
+            gen_num)] for g in outputs.generations]
         all_outputs.extend(output_texts)
     return all_outputs
 
@@ -246,10 +249,13 @@ def compute_likelihood(to_label, golden):
     else:
         df_golden = pd.read_csv(golden)
 
-    p1 = df_to_eval['veri_aggregated'].apply(lambda x: 1 if "yes" in x.lower() else 0).values
+    p1 = df_to_eval['veri_aggregated'].apply(
+        lambda x: 1 if "yes" in x.lower() else 0).values
     p2 = df_to_eval['p2_aggregated'].apply(lambda x: 1 if x else 0).values
-    p3_1 = df_to_eval['ob_aggregated'].apply(lambda x: 1 if "objective" in x.lower() else 0).values
-    p3_2 = df_to_eval['sub_aggregated'].apply(lambda x: 1 if "objective" in x.lower() else 0).values
+    p3_1 = df_to_eval['ob_aggregated'].apply(
+        lambda x: 1 if "objective" in x.lower() else 0).values
+    p3_2 = df_to_eval['sub_aggregated'].apply(
+        lambda x: 1 if "objective" in x.lower() else 0).values
 
     df_to_eval['likely'] = p1 + p2 + p3_1 + p3_2
     df_to_eval['likely_2'] = p1 + p2 + ((p3_1 + p3_2) > 0).astype(int)
@@ -264,44 +270,59 @@ def debate(args, llm, sentences):
         objective_prompts = [
             [
                 SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=PROMPT_OBJECTIVE.format(origination=args.origination, sentence=s))
+                HumanMessage(content=PROMPT_OBJECTIVE.format(
+                    origination=args.origination, sentence=s))
             ]
             for s in sentences
         ]
-        objective_outputs = asyncio.run(async_api_call(llm, objective_prompts, 1))
+        objective_outputs = asyncio.run(
+            async_api_call(llm, objective_prompts, 1))
         objective_outputs = [o[0].strip() for o in objective_outputs]
         subjective_prompts = [
             [
                 SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=PROMPT_SUBJECTIVE.format(origination=args.origination, sentence=s))
+                HumanMessage(content=PROMPT_SUBJECTIVE.format(
+                    origination=args.origination, sentence=s))
             ]
             for s in sentences
         ]
-        subjective_outputs = asyncio.run(async_api_call(llm, subjective_prompts, 1))
+        subjective_outputs = asyncio.run(
+            async_api_call(llm, subjective_prompts, 1))
         subjective_outputs = [o[0].strip() for o in subjective_outputs]
-        df_debate = pd.DataFrame({"SENTENCES": sentences, 'subjectivity': subjective_outputs, 'objectivity': objective_outputs})
-        df_debate.to_csv(args.output_name + '_debate.csv', index=False, encoding='utf-8')
+        df_debate = pd.DataFrame(
+            {"SENTENCES": sentences,
+             'subjectivity': subjective_outputs,
+             'objectivity': objective_outputs})
+        df_debate.to_csv(args.output_name + '_debate.csv',
+                         index=False, encoding='utf-8')
     else:
-        df_debate = pd.read_csv(args.load_debate + '_debate.csv', encoding='utf-8')
-        subjective_outputs = [l.strip() for l in df_debate['subjectivity'].to_list()]
-        objective_outputs = [l.strip() for l in df_debate['objectivity'].to_list()]
+        df_debate = pd.read_csv(
+            args.load_debate + '_debate.csv', encoding='utf-8')
+        subjective_outputs = [l.strip()
+                              for l in df_debate['subjectivity'].to_list()]
+        objective_outputs = [l.strip()
+                             for l in df_debate['objectivity'].to_list()]
 
     time.sleep(args.sleep)
     df_debate_results = df_debate
 
     judge_prompt = JUDGE_PROMPT
     objective_first_prompts = [
-            [
-                SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=judge_prompt.format(origination=args.origination, sentence=s, assistant_a=ob, assistant_b=sub))
-            ]
-            for s, ob, sub in zip(sentences, objective_outputs, subjective_outputs)
+        [
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=judge_prompt.format(
+                origination=args.origination, sentence=s, assistant_a=ob,
+                assistant_b=sub))
         ]
+        for s, ob, sub in zip(sentences, objective_outputs, subjective_outputs)
+    ]
 
-    objective_first_outputs = asyncio.run(async_api_call(llm, objective_first_prompts, args.num_gen))
+    objective_first_outputs = asyncio.run(
+        async_api_call(llm, objective_first_prompts, args.num_gen))
 
     ob_aggregated_answer = [o[0] for o in objective_first_outputs]
-    ob_verifiable_answer = [lean_to_answer(a, first='objective') for a in ob_aggregated_answer]
+    ob_verifiable_answer = [lean_to_answer(
+        a, first='objective') for a in ob_aggregated_answer]
     df_debate_results['ob_aggregated'] = ob_verifiable_answer
 
     time.sleep(args.sleep)
@@ -309,19 +330,24 @@ def debate(args, llm, sentences):
     subjective_first_prompts = [
         [
             SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=judge_prompt.format(origination=args.origination, sentence=s, assistant_a=sub, assistant_b=ob))
+            HumanMessage(content=judge_prompt.format(
+                origination=args.origination, sentence=s, assistant_a=sub,
+                assistant_b=ob))
         ]
         for s, ob, sub in zip(sentences, objective_outputs, subjective_outputs)
     ]
 
-    subjective_first_outputs = asyncio.run(async_api_call(llm, subjective_first_prompts, args.num_gen))
+    subjective_first_outputs = asyncio.run(
+        async_api_call(llm, subjective_first_prompts, args.num_gen))
 
     sub_aggregated_answer = [o[0] for o in subjective_first_outputs]
     sub_verifiable_answer = [lean_to_answer(a, first='subjective') for a in
-                            sub_aggregated_answer]
+                             sub_aggregated_answer]
     df_debate_results['sub_aggregated'] = sub_verifiable_answer
 
-    df_debate_results.to_csv(args.output_name + '_p3_' + str(args.num_gen) + '.csv', index=False, encoding='utf-8')
+    df_debate_results.to_csv(
+        args.output_name + '_p3_' + str(args.num_gen) + '.csv', index=False,
+        encoding='utf-8')
     return df_debate_results
 
 
@@ -329,17 +355,22 @@ def opinion(args, llm, prompt, sentences):
     fact_opinion_prompts = [
         [
             SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=prompt.format(origination=args.origination, sentence=s))
+            HumanMessage(content=prompt.format(
+                origination=args.origination, sentence=s))
         ]
         for s in sentences
     ]
 
-    opinion_outputs = asyncio.run(async_api_call(llm, fact_opinion_prompts, args.num_gen))
+    opinion_outputs = asyncio.run(async_api_call(
+        llm, fact_opinion_prompts, args.num_gen))
 
     opinion_answers = [o[0] for o in opinion_outputs]
-    df_p1_opinion = pd.DataFrame({'SENTENCES': sentences, 'op_aggregated': opinion_answers})
+    df_p1_opinion = pd.DataFrame(
+        {'SENTENCES': sentences, 'op_aggregated': opinion_answers})
 
-    df_p1_opinion.to_csv(args.output_name + '_opinion_p1_' + str(args.num_gen) + '.csv', encoding='utf-8', index=False)
+    df_p1_opinion.to_csv(
+        args.output_name + '_opinion_p1_' + str(args.num_gen) + '.csv',
+        encoding='utf-8', index=False)
     return df_p1_opinion
 
 
@@ -347,17 +378,22 @@ def verifiability(args, llm, prompt, sentences):
     verifiability_prompts = [
         [
             SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=prompt.format(origination=args.origination, sentence=s))
+            HumanMessage(content=prompt.format(
+                origination=args.origination, sentence=s))
         ]
         for s in sentences
     ]
 
-    verifiability_outputs = asyncio.run(async_api_call(llm, verifiability_prompts, args.num_gen))
+    verifiability_outputs = asyncio.run(
+        async_api_call(llm, verifiability_prompts, args.num_gen))
 
     verifiability_answers = [o[0] for o in verifiability_outputs]
-    df_p1_verifiability = pd.DataFrame({'SENTENCES': sentences, 'veri_aggregated': verifiability_answers})
+    df_p1_verifiability = pd.DataFrame(
+        {'SENTENCES': sentences, 'veri_aggregated': verifiability_answers})
 
-    df_p1_verifiability.to_csv(args.output_name + '_ver_p1_' + str(args.num_gen) + '.csv', encoding='utf-8', index=False)
+    df_p1_verifiability.to_csv(
+        args.output_name + '_ver_p1_' + str(args.num_gen) + '.csv',
+        encoding='utf-8', index=False)
     return df_p1_verifiability
 
 
@@ -365,15 +401,18 @@ def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences):
     part2_prompts = [
         [
             SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=prompt.format(origination=args.origination, sentence=s))
+            HumanMessage(content=prompt.format(
+                origination=args.origination, sentence=s))
         ]
         for s in sentences
     ]
 
-    part2_outputs = asyncio.run(async_api_call(llm, part2_prompts, args.num_gen))
+    part2_outputs = asyncio.run(
+        async_api_call(llm, part2_prompts, args.num_gen))
     answer_lists = parse_part2(part2_outputs, keys=p2_keys)
     if args.num_gen > 1:
-        aggregated_answer, confusion = majority_vote_p2(answer_lists[verifiable_key])
+        aggregated_answer, confusion = majority_vote_p2(
+            answer_lists[verifiable_key])
     else:
         aggregated_answer = [l[0] for l in answer_lists[verifiable_key]]
         confusion = None
@@ -385,7 +424,8 @@ def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences):
     if confusion is not None:
         df_p2['p2_confusion'] = confusion
 
-    df_p2.to_csv(args.output_name + '_p2_' + str(args.num_gen) + '.csv', encoding='utf-8', index=False)
+    df_p2.to_csv(args.output_name + '_p2_' + str(args.num_gen) +
+                 '.csv', encoding='utf-8', index=False)
     return df_p2
 
 
@@ -393,7 +433,8 @@ def main(args):
     P1_VERIFIABILITY = PROMPT_PART_1_VERIFIABILITY
     PART_2_PROMPT = PROMPT_PART_2_0905
 
-    PART2_KEYS = ["ANALYSIS", "FACT_PART", "VERIFIABLE_REASON", "VERIFIABILITY", "CATEGORY"]
+    PART2_KEYS = ["ANALYSIS", "FACT_PART",
+                  "VERIFIABLE_REASON", "VERIFIABILITY", "CATEGORY"]
     verifiable_key = "VERIFIABILITY"
 
     if args.seed > 0:
@@ -414,30 +455,44 @@ def main(args):
     else:
         temperature = 0
 
-    llm = ChatOpenAI(model_name=args.llm_name, temperature=temperature, max_tokens=512)
+    # llm = ChatOpenAI(model_name=args.llm_name,
+    #                  temperature=temperature, max_tokens=512)
+    llm = ChatOllama(
+        model=args.llm_name, temperature=temperature, num_predict=512)
 
     if not args.skip_p1:
         # Part 1 verifiability
-        df_p1_verifiability = verifiability(args, llm, P1_VERIFIABILITY, sentences)
+        df_p1_verifiability = verifiability(
+            args, llm, P1_VERIFIABILITY, sentences)
         time.sleep(args.sleep)
     else:
-        df_p1_verifiability = pd.read_csv(args.load_p1 + '_ver_p1_' + str(args.num_gen) + '.csv', encoding='utf-8')
+        df_p1_verifiability = pd.read_csv(
+            args.load_p1 + '_ver_p1_' + str(args.num_gen) + '.csv',
+            encoding='utf-8')
 
     # Part 2 annotation
     if not args.skip_p2:
-        df_p2 = part_2(args, llm, PART_2_PROMPT, PART2_KEYS, verifiable_key, sentences)
+        df_p2 = part_2(args, llm, PART_2_PROMPT, PART2_KEYS,
+                       verifiable_key, sentences)
     else:
-        df_p2 = pd.read_csv(args.load_p2 + '_p2_' + str(args.num_gen) + '.csv', encoding='utf-8')
+        df_p2 = pd.read_csv(
+            args.load_p2 + '_p2_' + str(args.num_gen) + '.csv',
+            encoding='utf-8')
 
     # Part 3 debate annotation
     if not args.skip_p3:
         df_p3 = debate(args, llm, sentences)
     else:
-        df_p3 = pd.read_csv(args.load_p3 + '_p3_' + str(args.num_gen) + '.csv', encoding='utf-8')
+        df_p3 = pd.read_csv(
+            args.load_p3 + '_p3_' + str(args.num_gen) + '.csv',
+            encoding='utf-8')
 
-    df_merged = pd.merge(df_p1_verifiability, df_p2, how='left', on='SENTENCES')
+    df_merged = pd.merge(df_p1_verifiability, df_p2,
+                         how='left', on='SENTENCES')
     df_merged = pd.merge(df_merged, df_p3, how='left', on='SENTENCES')
-    df_merged.to_csv(args.output_name + '_' + str(args.num_gen) + '.csv', encoding='utf-8', index=False)
+    df_merged.to_csv(
+        args.output_name + '_' + str(args.num_gen) + '.csv',
+        encoding='utf-8', index=False)
 
     # compute_likelihood(args.output_name + '_' + str(args.num_gen) + '.csv', args.file_name)
 
@@ -445,14 +500,15 @@ def main(args):
 if __name__ == '__main__':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     parser = argparse.ArgumentParser()
-    parser.add_argument("--origination", type=str, default="from a political debate")
+    parser.add_argument("--origination", type=str,
+                        default="from a political debate")
     parser.add_argument("--file_name", type=str, default="")
     parser.add_argument("--output_name", type=str, default="")
     parser.add_argument("--load_debate", type=str, default="")
     parser.add_argument("--load_p1", type=str, default="")
     parser.add_argument("--load_p2", type=str, default="")
     parser.add_argument("--load_p3", type=str, default="")
-    parser.add_argument("--llm_name", type=str, default="gpt-3.5-turbo-0613")
+    parser.add_argument("--llm_name", type=str, default="llama3.1")
     parser.add_argument("--context", type=int, default=0)
     parser.add_argument("--skip_p1", action="store_true", default=False)
     parser.add_argument("--skip_p2", action="store_true", default=False)
