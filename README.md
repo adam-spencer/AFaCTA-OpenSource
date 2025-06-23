@@ -1,13 +1,17 @@
-# AFaCTA
-An automatic annotation framework for Factual Claim Detection, focusing on verifiability and calibrating with self-consistency ensemble.
+# AFaCTA-OpenSource
+Fork of AFaCTA using [Ollama](https://ollama.com/) to use a plethora of open source models instead of OpenAI models.
+
+AFaCTA is an automatic annotation framework for Factual Claim Detection, focusing on verifiability and calibrating with self-consistency ensemble.
 One claim detector fine-tuned by full PoliClaim_gold and PoliClaim_silver can be found at https://huggingface.co/JingweiNi/roberta-base-afacta
+
+This file requires editing and is not final.
 
 ## How to use
 ### How to annotate a political speech?
 ```shell
-python code/afacta_multi_step_annotation.py --file_name data/raw_speeches/AK1995_processed.csv --output_name AK1995 --context 1 --llm_name gpt-4-0613
+python code/afacta_multi_step_annotation.py --file_name data/raw_speeches/AK1995_processed.csv --output_name AK1995 --context 1 --llm_name llama3.1:8b
 ```
-In this example command, we annotate AK1995 with a context length of 1 (previous and subsequent sentence), using GPT-4's June checkpoint.
+In this example command, we annotate AK1995 with a context length of 1 (previous and subsequent sentence), using Llama3.1-8B.
 
 ### How to reproduce the major results in paper?
 ```shell
