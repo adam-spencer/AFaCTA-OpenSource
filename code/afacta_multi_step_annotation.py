@@ -32,7 +32,7 @@ Then extract the fact that the <statement> is based on.
 Then carefully reason about if the extracted fact is objectively verifiable.
 Finally answer if the fact falls into the above categories (C1 to C5) or not (C0).
 
-Context for <statement> to help you understand it better: "{context}"
+Context for <statement> to help you understand it better: "...{context}..."
 <statement>: "{sentence}"
 
 Format your answer in JSON with the following keys in order:
@@ -47,7 +47,7 @@ Format your answer in JSON with the following keys in order:
 
 PROMPT_PART_1_VERIFIABILITY = """Given the <context> of the following <sentence> from a political speech, does it contain any objective information?
 
-<context>: "{context}"
+<context>: "...{context}..."
 <sentence>: "{sentence}"
 
 Answer with Yes or No only.
@@ -55,20 +55,20 @@ Answer with Yes or No only.
 
 PROMPT_OBJECTIVE = """Concisely argue that the following <sentence> from a political speech does contain some objective information.
 
-Context of <sentence> in the speech: "{context}"
+Context of <sentence> in the speech: "...{context}..."
 <sentence>: "{sentence}"
 """
 
 
 PROMPT_SUBJECTIVE = """Concisely argue that the following <sentence> from a political speech does not contain any objective information.
 
-Context of <sentence> in the speech: "{context}"
+Context of <sentence> in the speech: "...{context}..."
 <sentence>: "{sentence}"
 """
 
 JUDGE_PROMPT = """Two AI assistants are debating about whether the following <sentence> (from a political speech) contains any objectively verifiable information.
 
-Context of <sentence> in the speech: "{context}"
+Context of <sentence> in the speech: "...{context}..."
 <sentence>: "{sentence}"
 
 Assistant A's View: "{assistant_a}"
