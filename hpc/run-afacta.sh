@@ -18,10 +18,13 @@ export OLLAMA_MODELS=/mnt/parscratch/users/acr24as/ollama_models
 echo "Starting Ollama server..."
 
 OLLAMA_SIF_PATH="/${HOME}/ollama-container/ollama.sif"
-apptainer instance start --nv "$OLLAMA_SIF_PATH" "ollama-job-${SLURM_JOB_ID}"
+INSTANCE_NAME="ollama-job-${SLURM_JOB_ID}"
+apptainer instance start --nv "$OLLAMA_SIF_PATH" "$INSTANCE_NAME"
 
-echo "Waiting for Ollama server to start..."
-sleep 15
+apptainer exec instance://$INSTANCE_NAME \
+  bash -c "ollama serve &"
+
+sleep 5
 
 echo "Running main script..."
 python code/afacta_multi_step_annotation.py \
@@ -30,7 +33,7 @@ python code/afacta_multi_step_annotation.py \
   --llm_name gemma3:12b \
   --context 1
 
-echo "Main script finished, cleaning up..."
-apptainer instance stop "ollama-job-${SLURM_JOB_ID}"
+echo "Main script finished, killing server..."
+apptainer instance stop "$INSTANCE_NAME"
 
 echo "Job finished successfully"
