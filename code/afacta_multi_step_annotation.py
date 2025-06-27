@@ -477,8 +477,8 @@ async def main(args):
     if args.sample > 0:
         sentences = random.sample(sentences, args.sample)
 
-    print(f"INFO: Generating text contexts with a window size of {
-          args.context}...")
+    print("INFO: Generating text contexts with a window size of"
+          f" {args.context}...")
     contexts = contextualize_sentences(sentences, window_size=args.context)
     print("INFO: Context generation complete.")
 
