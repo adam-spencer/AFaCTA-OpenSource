@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --mem=8G
+#SBATCH --mem=82G
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-user=aspencer2@sheffield.ac.uk
 #SBATCH --mail-type=ALL
