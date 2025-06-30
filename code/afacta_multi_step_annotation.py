@@ -417,7 +417,8 @@ async def verifiability(args, llm, prompt, sentences, contexts):
 
 
 # CHANGED: Made the function async
-async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences, contexts):
+async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences,
+                 contexts):
     part2_prompts = [
         [
             SystemMessage(content=SYSTEM_PROMPT),
@@ -440,8 +441,8 @@ async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences, contexts
     df_p2 = pd.DataFrame({'SENTENCES': sentences})
     for i in range(args.num_gen):
         for k in p2_keys:
-            df_p2[k + str(i + 1)] = [l[i] if len(l) >
-                                     i else None for l in answer_lists[k]]
+            df_p2[k + str(i + 1)] = [
+                l[i] if len(l) > i else None for l in answer_lists[k]]
     df_p2['p2_aggregated'] = aggregated_answer
     if confusion is not None:
         df_p2['p2_confusion'] = confusion
@@ -468,17 +469,14 @@ async def main(args):
     else:
         df = pd.read_csv(args.file_name, encoding='utf-8')
 
-    if args.limit > 0:
-        df = df.head(args.limit)
-
     sentences = df['SENTENCES'].to_list()
     sentences = [s.strip() for s in sentences]
 
     if args.sample > 0:
         sentences = random.sample(sentences, args.sample)
 
-    print(f"INFO: Generating text contexts with a window size of {
-          args.context}...")
+    print("INFO: Generating text contexts with a window size of "
+          f"{args.context}...")
     contexts = contextualize_sentences(sentences, window_size=args.context)
     print("INFO: Context generation complete.")
 
@@ -548,9 +546,6 @@ if __name__ == '__main__':
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num_gen", type=int, default=1)
     parser.add_argument("--sleep", type=int, default=5)
-    parser.add_argument(
-        "--limit", type=int, default=0,
-        help="Limit the number of rows to process for testing. 0 = no limit.")
     args = parser.parse_args()
 
     # CHANGED: The script is now started with a single asyncio.run() call
