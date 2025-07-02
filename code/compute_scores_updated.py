@@ -51,6 +51,8 @@ def mapping_two(l1, l2, neg):
 
 def main(df):
     model_names = [x for x in df.columns if re.match(r'^[\w.]+[-:][\w.]+$', x)]
+    if 'zephyr' in df and 'llama' in df:
+        model_names.extend(['zephyr', 'llama'])
     df = compute_likelihood(df, model_names)
 
     print(np.mean(df['Golden']))  # 81.43, 63.85
@@ -58,7 +60,7 @@ def main(df):
     for model_name in model_names:
         df[f'{model_name}_label'] = df[model_name].apply(
             lambda x: 0 if x <= 1.5 else 1)
-        print(f'==={model_name}===')
+        print(f'\n==={model_name}===')
 
         # support original zephyr and llama result
         if f'{model_name}-s1' not in df:
