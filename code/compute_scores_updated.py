@@ -33,7 +33,8 @@ def compute_likelihood(df_to_eval, model_names):
 
 
 def mapping(l, neg):
-    return [0 if i == neg or str(neg).lower() in str(i).lower() else 1 for i in l]
+    return [
+        0 if i == neg or str(neg).lower() in str(i).lower() else 1 for i in l]
 
 
 def mapping_two(l1, l2, neg):
@@ -54,18 +55,20 @@ def main(df):
 
     print(np.mean(df['Golden']))  # 81.43, 63.85
 
-    for model in model_names:
-        df[f'{model}_label'] = df[model].apply(lambda x: 0 if x <= 1.5 else 1)
-        print(f'==={model}===')
+    for model_name in model_names:
+        df[f'{model_name}_label'] = df[model_name].apply(
+            lambda x: 0 if x <= 1.5 else 1)
+        print(f'==={model_name}===')
 
-        if f'{model}-s1' not in df:  # support original zephyr and llama result
+        # support original zephyr and llama result
+        if f'{model_name}-s1' not in df:
             print('Accuracy', accuracy_score(
-                df['Golden'], df[f'{model}_label']))
+                df['Golden'], df[f'{model_name}_label']))
             print('Kappa', (
                 cohen_kappa_score(
-                    df['label_1'], df[f'{model}_label']
+                    df['label_1'], df[f'{model_name}_label']
                 ) + cohen_kappa_score(
-                    df['label_2'], df[f'{model}_label']
+                    df['label_2'], df[f'{model_name}_label']
                 ) / 2))
             continue
 
@@ -74,54 +77,58 @@ def main(df):
         print("S1 label")
         print('Kappa score', (
             cohen_kappa_score(
-                sub_df['label_1'], mapping(sub_df[f'{model}-s1'], neg='No')
+                sub_df['label_1'],
+                mapping(sub_df[f'{model_name}-s1'], neg='No')
             ) + cohen_kappa_score(
-                sub_df['label_2'], mapping(sub_df[f'{model}-s1'], neg='No'))
+                sub_df['label_2'],
+                mapping(sub_df[f'{model_name}-s1'], neg='No'))
         ) / 2)
         print('Accuracy score: ', accuracy_score(
-            sub_df['Golden'], mapping(sub_df[f'{model}-s1'], neg='No')))
+            sub_df['Golden'], mapping(sub_df[f'{model_name}-s1'], neg='No')))
 
         print("S2 label")
         print('Kappa score', (
             cohen_kappa_score(
-                sub_df['label_1'], mapping(sub_df[f'{model}-s2'], neg=False)
+                sub_df['label_1'],
+                mapping(sub_df[f'{model_name}-s2'], neg=False)
             ) + cohen_kappa_score(
-                sub_df['label_2'], mapping(sub_df[f'{model}-s2'], neg=False))
+                sub_df['label_2'],
+                mapping(sub_df[f'{model_name}-s2'], neg=False))
         ) / 2)
         print('Accuracy score: ', accuracy_score(
-            sub_df['Golden'], mapping(sub_df[f'{model}-s2'], neg=False)))
+            sub_df['Golden'], mapping(sub_df[f'{model_name}-s2'], neg=False)))
 
         print("S3 label")
         print('kappa score', (
             (cohen_kappa_score(
                 sub_df['label_1'],
-                mapping(sub_df[f'{model}-s3-1'], neg='Subjective')
+                mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
             ) + cohen_kappa_score(
                 sub_df['label_1'],
-                mapping(sub_df[f'{model}-s3-2'], neg='Subjective'))) / 2
+                mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))) / 2
         ) + (
             (cohen_kappa_score(
                 sub_df['label_2'],
-                mapping(sub_df[f'{model}-s3-1'], neg='Subjective')
+                mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
             ) + cohen_kappa_score(
                 sub_df['label_2'],
-                mapping(sub_df[f'{model}-s3-2'], neg='Subjective'))) / 2
+                mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))) / 2
         ) / 2)
         print('acc score', (
             accuracy_score(
                 sub_df['Golden'],
-                mapping(sub_df[f'{model}-s3-1'], neg='Subjective')
+                mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
             ) + accuracy_score(
                 sub_df['Golden'],
-                mapping(sub_df[f'{model}-s3-2'], neg='Subjective'))) / 2)
+                mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))) / 2)
         print("Aggregated label")
-        print(f'{model}-human kappa score', (
+        print(f'{model_name}-human kappa score', (
             cohen_kappa_score(
-                sub_df['label_1'], sub_df[f'{model}_label']
+                sub_df['label_1'], sub_df[f'{model_name}_label']
             ) + cohen_kappa_score(
-                sub_df['label_2'], sub_df[f'{model}_label'])) / 2)
+                sub_df['label_2'], sub_df[f'{model_name}_label'])) / 2)
         print('Accuracy score: ', accuracy_score(
-            sub_df['Golden'], sub_df[f'{model}_label']))
+            sub_df['Golden'], sub_df[f'{model_name}_label']))
 
     print('Human kappa', cohen_kappa_score(
         sub_df['label_1'], sub_df['label_2']))
@@ -132,8 +139,7 @@ def main(df):
             sub_df['Golden'], sub_df['label_2'])) / 2)
     print("\n\n")
 
-    # TODO determine how to change this
-    for model_name in ['gpt-3.5', 'gpt-4', 'zephyr', 'llama']:
+    for model_name in model_names:
         golden = df.loc[(df[model_name] == 0) | (
             df[model_name] == 3), 'Golden'].to_list()
         label_1 = df.loc[(df[model_name] == 0) | (
@@ -144,10 +150,10 @@ def main(df):
                        model_name].apply(lambda x: 0 if x == 0 else 1)
         human_kappa = cohen_kappa_score(label_1, label_2)
         ai_acc = accuracy_score(golden, label)
-        ai_kappa = (cohen_kappa_score(label, label_2) +
-                    cohen_kappa_score(label, label_1)) / 2
-        human_acc = (accuracy_score(golden, label_2) +
-                     accuracy_score(golden, label_1)) / 2
+        ai_kappa = (cohen_kappa_score(label, label_2) + (
+                    cohen_kappa_score(label, label_1))) / 2
+        human_acc = (accuracy_score(golden, label_2) + (
+                     accuracy_score(golden, label_1))) / 2
         print('kappa of inconsistent samples', ai_kappa, human_kappa)
         print('acc of inconsistent samples', ai_acc, human_acc)
         golden = df.loc[(df[model_name] > 0) & (
@@ -160,10 +166,10 @@ def main(df):
                        model_name].apply(lambda x: 0 if x <= 1.5 else 1)
         human_kappa = cohen_kappa_score(label_1, label_2)
         ai_acc = accuracy_score(golden, label)
-        ai_kappa = (cohen_kappa_score(label, label_2) +
-                    cohen_kappa_score(label, label_1)) / 2
-        human_acc = (accuracy_score(golden, label_2) +
-                     accuracy_score(golden, label_1)) / 2
+        ai_kappa = (cohen_kappa_score(label, label_2) + (
+                    cohen_kappa_score(label, label_1))) / 2
+        human_acc = (accuracy_score(golden, label_2) + (
+                     accuracy_score(golden, label_1))) / 2
         print('kappa of perfect consistent samples', ai_kappa, human_kappa)
         print('acc of perfect consistent samples', ai_acc, human_acc)
         print('\n')
@@ -172,11 +178,13 @@ def main(df):
 def confusion(num_answer, model, data):
     column_names = ['veri_Answer_' + str(i) for i in range(1, num_answer + 1)]
     if data == 0:
-        df = pd.read_excel('data/CoT_self-consistency/policlaim_test_' +
-                           model + '_CoT.xlsx')[column_names + ['Golden']]
+        df = pd.read_excel(
+            f'data/CoT_self-consistency/policlaim_test_{model}_CoT.xlsx'
+        )[column_names + ['Golden']]
     elif data == 1:
-        df = pd.read_excel('data/CoT_self-consistency/clef2021_test_' +
-                           model + '_CoT.xlsx')[column_names + ['Golden']]
+        df = pd.read_excel(
+            f'data/CoT_self-consistency/clef2021_test_{model}_CoT.xlsx'
+        )[column_names + ['Golden']]
     np.random.seed(42)
     rand_labels = np.random.randint(2, size=len(df))
     df['random'] = rand_labels
@@ -208,8 +216,9 @@ def confusion(num_answer, model, data):
         agg = df.loc[df['confusion'] == i, 'aggregated']
         golden = df.loc[df['confusion'] == i, 'Golden']
         rand = df.loc[df['confusion'] == i, 'random']
-        print('confusion level', i, accuracy_score(golden, agg), 'Random', accuracy_score(
-            rand, agg), "Percentage {:.2f}".format(100 * len(agg) / len(df)))
+        print('confusion level', i, accuracy_score(golden, agg),
+              'Random', accuracy_score(rand, agg),
+              'Percentage {:.2f}'.format(100 * len(agg) / len(df)))
         confusion_scores.append(accuracy_score(golden, agg))
         random_scores.append(accuracy_score(rand, agg))
         percentage.append(round(100 * len(agg) / len(df), 2))
