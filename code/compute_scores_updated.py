@@ -10,6 +10,9 @@ random.seed(42)
 
 def compute_likelihood(df_to_eval, model_names):
     for model in model_names:
+        # Skip incorrectly formatted cols (original llama and zephyr)
+        if f'{model}-s1' not in df_to_eval.columns:
+            continue
         p1 = df_to_eval[f'{model}-s1'].apply(
             lambda x: 1 if "yes" in x.lower() else 0).values
         p2 = []
@@ -47,88 +50,89 @@ def mapping_two(l1, l2, neg):
 
 def main(df):
     model_names = [x for x in df.columns if re.match(r'^[\w.]+[-:][\w.]+$', x)]
-    df = compute_likelihood(df)
-
-    df['gpt35_label'] = df['gpt-3.5'].apply(lambda x: 0 if x <= 1.5 else 1)
-    df['gpt4_label'] = df['gpt-4'].apply(lambda x: 0 if x <= 1.5 else 1)
-    df['zephyr_label'] = df['zephyr'].apply(lambda x: 0 if x <= 1.5 else 1)
-    df['llama_label'] = df['llama'].apply(lambda x: 0 if x <= 1.5 else 1)
+    df = compute_likelihood(df, model_names)
 
     print(np.mean(df['Golden']))  # 81.43, 63.85
-    print("===zephyr===")
-    print('Acc', accuracy_score(df['Golden'], df['zephyr_label']))
-    print('kappa', (cohen_kappa_score(
-        df['label_1'], df['zephyr_label']) + cohen_kappa_score(df['label_2'], df['zephyr_label']) / 2))
 
-    print("===llama===")
-    print('Acc', accuracy_score(df['Golden'], df['llama_label']))
-    print('kappa', (cohen_kappa_score(df['label_1'], df['llama_label']) + cohen_kappa_score(df['label_2'],
-                                                                                            df['llama_label']) / 2))
+    for model in model_names:
+        df[f'{model}_label'] = df[model].apply(lambda x: 0 if x <= 1.5 else 1)
+        print(f'==={model}===')
 
-    print("===GPT-4===")
-    # sub_df = df.loc[(df['gpt-4'] < 1) | (df['gpt-4'] > 1.5), :]
-    sub_df = df
-    print("S1 label")
-    print('kappa score', (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-4-s1'], neg='No')) +
-                          cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-4-s1'], neg='No'))) / 2)
-    print('acc score: ', accuracy_score(
-        sub_df['Golden'], mapping(sub_df['gpt-4-s1'], neg='No')))
-    print("S2 label")
-    print('kappa score', (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-4-s2'], neg=False)) +
-                          cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-4-s2'], neg=False))) / 2)
-    print('acc score: ', accuracy_score(
-        sub_df['Golden'], mapping(sub_df['gpt-4-s2'], neg=False)))
-    print("S3 label")
-    print('kappa score', (
-        (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-4-s3-1'], neg='Subjective'))
-         + cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-4-s3-2'], neg='Subjective'))) / 2
-    ) + (
-        (cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-4-s3-1'], neg='Subjective'))
-         + cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-4-s3-2'], neg='Subjective'))) / 2
-    ) / 2)
-    print('acc score', (accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-4-s3-1'], neg='Subjective'))
-                        + accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-4-s3-2'], neg='Subjective'))) / 2)
-    print("Aggregated label")
-    print('gpt4-human kappa score', (cohen_kappa_score(sub_df['label_1'], sub_df['gpt4_label']) +
-                                     cohen_kappa_score(sub_df['label_2'], sub_df['gpt4_label'])) / 2)
-    print('inter-human kappa score',
-          cohen_kappa_score(sub_df['label_1'], sub_df['label_2']))
-    print('acc score: ', accuracy_score(
-        sub_df['Golden'], sub_df['gpt4_label']))
-    print("\n===GPT-3.5===")
-    # sub_df = df.loc[(df['gpt-3.5'] < 1) | (df['gpt-3.5'] > 1.5), :]
-    sub_df = df
-    print("S1 label")
-    print('kappa score', (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-3.5-s1'], neg='No')) +
-                          cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-3.5-s1'], neg='No'))) / 2)
-    print('acc score: ', accuracy_score(
-        sub_df['Golden'], mapping(sub_df['gpt-3.5-s1'], neg='No')))
-    print("S2 label")
-    print('kappa score', (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-3.5-s2'], neg=False)) +
-                          cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-3.5-s2'], neg=False))) / 2)
-    print('acc score: ', accuracy_score(
-        sub_df['Golden'], mapping(sub_df['gpt-3.5-s2'], neg=False)))
-    print("S3 label")
-    print('kappa score', (
-        (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-3.5-s3-1'], neg='Subjective'))
-         + cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-3.5-s3-2'], neg='Subjective'))) / 2
-    ) + (
-        (cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-3.5-s3-1'], neg='Subjective'))
-         + cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-3.5-s3-2'], neg='Subjective'))) / 2
-    ) / 2)
-    print('acc score', (accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-3.5-s3-1'], neg='Subjective'))
-                        + accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-3.5-s3-2'], neg='Subjective'))) / 2)
-    print("Aggregated label")
-    print('3.5-human kappa', (cohen_kappa_score(sub_df['label_1'], sub_df['gpt35_label']) +
-                              cohen_kappa_score(sub_df['label_2'], sub_df['gpt35_label'])) / 2)
-    print('human kappa', cohen_kappa_score(
+        if f'{model}-s1' not in df:  # support original zephyr and llama result
+            print('Accuracy', accuracy_score(
+                df['Golden'], df[f'{model}_label']))
+            print('Kappa', (
+                cohen_kappa_score(
+                    df['label_1'], df[f'{model}_label']
+                ) + cohen_kappa_score(
+                    df['label_2'], df[f'{model}_label']
+                ) / 2))
+            continue
+
+        # TODO can this be condensed?
+        sub_df = df
+        print("S1 label")
+        print('Kappa score', (
+            cohen_kappa_score(
+                sub_df['label_1'], mapping(sub_df[f'{model}-s1'], neg='No')
+            ) + cohen_kappa_score(
+                sub_df['label_2'], mapping(sub_df[f'{model}-s1'], neg='No'))
+        ) / 2)
+        print('Accuracy score: ', accuracy_score(
+            sub_df['Golden'], mapping(sub_df[f'{model}-s1'], neg='No')))
+
+        print("S2 label")
+        print('Kappa score', (
+            cohen_kappa_score(
+                sub_df['label_1'], mapping(sub_df[f'{model}-s2'], neg=False)
+            ) + cohen_kappa_score(
+                sub_df['label_2'], mapping(sub_df[f'{model}-s2'], neg=False))
+        ) / 2)
+        print('Accuracy score: ', accuracy_score(
+            sub_df['Golden'], mapping(sub_df[f'{model}-s2'], neg=False)))
+
+        print("S3 label")
+        print('kappa score', (
+            (cohen_kappa_score(
+                sub_df['label_1'],
+                mapping(sub_df[f'{model}-s3-1'], neg='Subjective')
+            ) + cohen_kappa_score(
+                sub_df['label_1'],
+                mapping(sub_df[f'{model}-s3-2'], neg='Subjective'))) / 2
+        ) + (
+            (cohen_kappa_score(
+                sub_df['label_2'],
+                mapping(sub_df[f'{model}-s3-1'], neg='Subjective')
+            ) + cohen_kappa_score(
+                sub_df['label_2'],
+                mapping(sub_df[f'{model}-s3-2'], neg='Subjective'))) / 2
+        ) / 2)
+        print('acc score', (
+            accuracy_score(
+                sub_df['Golden'],
+                mapping(sub_df[f'{model}-s3-1'], neg='Subjective')
+            ) + accuracy_score(
+                sub_df['Golden'],
+                mapping(sub_df[f'{model}-s3-2'], neg='Subjective'))) / 2)
+        print("Aggregated label")
+        print(f'{model}-human kappa score', (
+            cohen_kappa_score(
+                sub_df['label_1'], sub_df[f'{model}_label']
+            ) + cohen_kappa_score(
+                sub_df['label_2'], sub_df[f'{model}_label'])) / 2)
+        print('Accuracy score: ', accuracy_score(
+            sub_df['Golden'], sub_df[f'{model}_label']))
+
+    print('Human kappa', cohen_kappa_score(
         sub_df['label_1'], sub_df['label_2']))
-    print('acc score: ', accuracy_score(
-        sub_df['Golden'], sub_df['gpt35_label']))
-    print('human acc: ', (accuracy_score(sub_df['Golden'], sub_df['label_1'])
-                          + accuracy_score(sub_df['Golden'], sub_df['label_2'])) / 2)
+    print('Human accuracy: ', (
+        accuracy_score(
+            sub_df['Golden'], sub_df['label_1']
+        ) + accuracy_score(
+            sub_df['Golden'], sub_df['label_2'])) / 2)
     print("\n\n")
 
+    # TODO determine how to change this
     for model_name in ['gpt-3.5', 'gpt-4', 'zephyr', 'llama']:
         golden = df.loc[(df[model_name] == 0) | (
             df[model_name] == 3), 'Golden'].to_list()
