@@ -1,5 +1,5 @@
 # AFaCTA-OpenSource
-Fork of AFaCTA using [Ollama](https://ollama.com/) to use a plethora of open source models instead of OpenAI models.
+Fork of AFaCTA using [Ollama](https://ollama.com/) for selecting from a plethora of open source models instead of OpenAI models.
 
 AFaCTA is an automatic annotation framework for Factual Claim Detection, focusing on verifiability and calibrating with self-consistency ensemble.
 One claim detector fine-tuned by full PoliClaim_gold and PoliClaim_silver can be found at https://huggingface.co/JingweiNi/roberta-base-afacta
