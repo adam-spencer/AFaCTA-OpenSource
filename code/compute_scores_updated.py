@@ -236,6 +236,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_answer", type=int, default=0)
     parser.add_argument("--model", type=str, default='G3')
     args = parser.parse_args()
+    # TODO allow selection of results file
     if args.data == 0:
         df = pd.read_excel(
             'data/PoliClaim_test/policlaim_gpt_with_human_eval_merged.xlsx')
