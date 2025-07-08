@@ -2,7 +2,9 @@ import argparse
 import asyncio
 from collections import Counter
 import json
-from langchain_ollama.chat_models import ChatOllama
+# from langchain_ollama.chat_models import ChatOllama
+from langchain_huggingface.llms import HuggingFacePipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from langchain.schema import (
     HumanMessage,
     SystemMessage
@@ -491,8 +493,20 @@ async def main(args):
     else:
         temperature = 0
 
-    llm = ChatOllama(
-        model=args.llm_name, temperature=temperature, num_predict=512)
+    # TODO add a way to define path to model rather than just name
+    #   -> this will require a new file naming method!
+    model = AutoModelForCausalLM.from_pretrained(
+        args.llm_name, device_map='auto'
+    )
+    tokenizer = AutoTokenizer.from_pretrained(args.llm_name)
+    pipe = pipeline(
+        'text-generation',
+        model=model,
+        tokenizer=tokenizer,
+        temperature=temperature,
+        max_new_tokens=512
+    )
+    llm = HuggingFacePipeline(pipeline=pipe)
 
     if not args.skip_p1:
         # Part 1 verifiability
