@@ -578,7 +578,7 @@ if __name__ == '__main__':
             llm_name_fmt = p.name
         else:
             llm_name_fmt = args.llm_name.split('/')[1]
-        args.output_name = (f'{re.split(r'[_.]', args.filename)[0]}'
+        args.output_name = (f'{re.split(r'[_.]', args.file_name)[0]}'
                             f'_{args.llm_name}')
 
     # CHANGED: The script is now started with a single asyncio.run() call
