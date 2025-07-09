@@ -11,6 +11,7 @@ from langchain.schema import (
 )
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import random
 import re
 # import time
@@ -556,8 +557,9 @@ if __name__ == '__main__':
     parser.add_argument("--load_p1", type=str, default="")
     parser.add_argument("--load_p2", type=str, default="")
     parser.add_argument("--load_p3", type=str, default="")
-    parser.add_argument("--llm_name", type=str,
-                        default="llama3.1:8b")
+    parser.add_argument(
+        "--llm_name", type=str, default="google/gemma-3-12b-it",
+        help='Use HF Hub name or path to local installation')
     parser.add_argument("--context", type=int, default=1)
     parser.add_argument("--skip_p1", action="store_true", default=False)
     parser.add_argument("--skip_p2", action="store_true", default=False)
@@ -568,9 +570,14 @@ if __name__ == '__main__':
     parser.add_argument("--sleep", type=int, default=5)
     args = parser.parse_args()
 
+    # TODO vague comment
     # Unless otherwise defined, generate output name
     # Expects filename shape [dataname]<_processed>[.ext]
     if args.output_name == '':
+        if (p := Path(args.llm_name)).exists():
+            llm_name_fmt = p.name
+        else:
+            llm_name_fmt = args.llm_name.split('/')[1]
         args.output_name = (f'{re.split(r'[_.]', args.filename)[0]}'
                             f'_{args.llm_name}')
 
