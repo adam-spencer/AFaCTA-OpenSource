@@ -14,6 +14,7 @@ from pathlib import Path
 import random
 import re
 import time
+import torch
 
 SYSTEM_PROMPT = """You are an AI assistant who helps fact-checkers to identify fact-like information in statements.
 """
@@ -522,6 +523,12 @@ if __name__ == '__main__':
     parser.add_argument("--num_gen", type=int, default=1)
     parser.add_argument("--sleep", type=int, default=5)
     args = parser.parse_args()
+
+    if torch.cuda.is_available() and torch.cuda.get_device_capability(0)[0] >= 8:
+        print("✅ Compatible GPU detected, setting matmul precision to 'high'.")
+        torch.set_float_32_matmul_precision('high')
+    else:
+        print("ℹ️ No compatible GPU found, using default matmul precision.")
 
     if args.output_name == '':
         if (p := Path(args.llm_name)).exists():
