@@ -8,6 +8,7 @@
 #SBATCH --mail-user=aspencer2@sheffield.ac.uk
 #SBATCH --mail-type=ALL
 
+module load GCC/12.3.0
 module load Anaconda3/2022.05
 module load cuDNN/8.9.2.26-CUDA-12.1.1
 

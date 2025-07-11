@@ -526,9 +526,10 @@ if __name__ == '__main__':
 
     if torch.cuda.is_available() and torch.cuda.get_device_capability(0)[0] >= 8:
         print("✅ Compatible GPU detected, setting matmul precision to 'high'.")
-        torch.set_float_32_matmul_precision('high')
+        torch.backends.cudnn.allow_tf32 = True
     else:
         print("ℹ️ No compatible GPU found, using default matmul precision.")
+    torch._dynamo.config.cache_size_limit = 64
 
     if args.output_name == '':
         if (p := Path(args.llm_name)).exists():
