@@ -568,7 +568,7 @@ if __name__ == '__main__':
     # Unless otherwise defined, generate output name
     # Expects filename shape [dataname]<_processed>[.ext]
     if args.output_name == '':
-        args.output_name = (f'{re.split(r'[_.]', args.filename)[0]}'
+        args.output_name = (f'{re.split(r'[_.]', args.file_name)[0]}'
                             f'_{args.llm_name}')
 
     # CHANGED: The script is now started with a single asyncio.run() call
