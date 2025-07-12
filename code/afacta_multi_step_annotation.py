@@ -448,8 +448,19 @@ async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences,
             df_p2[k + str(i + 1)] = [
                 l[i] if len(l) > i else None for l in answer_lists[k]]
     df_p2['p2_aggregated'] = aggregated_answer
-    df_p2['CATEGORY'] = Counter(dict(filter(
-        lambda x: x[0].startswith('CATEGORY'), df_p2.items()))).most_common(1)
+
+    # Find all columns that start with 'CATEGORY'
+    category_cols = [
+        col for col in df_p2.columns if col.startswith('CATEGORY')]
+    # If category columns exist, find the most frequent value (mode) for each row
+    if category_cols:
+        # Using .mode(axis=1) finds the mode across the columns for each row.
+        # .iloc[:, 0] selects the first mode if there are multiple.
+        df_p2['CATEGORY'] = df_p2[category_cols].mode(axis=1).iloc[:, 0]
+    else:
+        # If no category columns were created, fill with a placeholder
+        df_p2['CATEGORY'] = None
+
     if confusion is not None:
         df_p2['p2_confusion'] = confusion
 
