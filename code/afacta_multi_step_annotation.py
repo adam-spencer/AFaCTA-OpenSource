@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import random
 import re
+from pathlib import Path
 # import time
 
 SYSTEM_PROMPT = """You are an AI assistant who helps fact-checkers to identify fact-like information in statements.
@@ -568,8 +569,9 @@ if __name__ == '__main__':
     # Unless otherwise defined, generate output name
     # Expects filename shape [dataname]<_processed>[.ext]
     if args.output_name == '':
-        args.output_name = (f'{re.split(r'[_.]', args.file_name)[0]}'
-                            f'_{args.llm_name}')
+        args.output_name = (
+            f'{re.split(r'[_.]', Path(args.file_name).name)[0]}'
+            f'_{args.llm_name}')
 
     # CHANGED: The script is now started with a single asyncio.run() call
     asyncio.run(main(args))
