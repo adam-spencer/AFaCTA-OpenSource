@@ -29,9 +29,9 @@ sleep 15
 echo "Beginning loop..."
 for file in data/test_speeches/*.csv; do
   echo "Running on $file"
-python code/afacta_multi_step_annotation.py \
-  --file_name "$file" \
-  --llm_name gemma3:12b
+  python code/afacta_multi_step_annotation.py \
+    --file_name "$file" \
+    --llm_name gemma3:12b
 done
 
 echo "Main script finished, killing server..."
