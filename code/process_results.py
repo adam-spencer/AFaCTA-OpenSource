@@ -80,7 +80,7 @@ def merge_result_dfs(dfs: [pd.DataFrame]) -> pd.DataFrame:
 
 def load_file(filename: str) -> pd.DataFrame:
     """Load file as df independent of extension."""
-    if filename.endswith('xslx'):
+    if filename.endswith('xlsx'):
         df = pd.read_excel(filename)
     else:
         df = pd.read_csv(filename, encoding='utf-8')
@@ -89,7 +89,7 @@ def load_file(filename: str) -> pd.DataFrame:
 
 def write_file(output_name: str, df: pd.DataFrame) -> None:
     """Write df to file independent of extension."""
-    if output_name.endswith('xslx'):
+    if output_name.endswith('xlsx'):
         df = df.to_excel(output_name)
     else:
         df = df.to_csv(output_name)
@@ -111,7 +111,7 @@ def main(args):
         results_files[model][speech] = file
 
     # Concatenate results by model
-    model_dfs = dict()
+    model_dfs = []
     for model, speech_dict in results_files.items():
         dfs = []
         # Add speech col
@@ -122,12 +122,12 @@ def main(args):
         # Concatenate dfs for the same model
         df_concat = pd.concat(dfs, ignore_index=True)
         df_concat = rename_and_filter_model_cols(df_concat, model_name=model)
-        model_dfs[model] = df_concat
+        model_dfs.append(df_concat)
 
     # Join resultant dataframes
     final_df = merge_result_dfs(model_dfs)
-    if args.gold_files:
-        df_gold = combine_gold_labels(args.gold_files, final_df)
+    if args.gold_file:
+        df_gold = combine_gold_labels(args.gold_file, final_df)
         write_file(args.output, df_gold)
     else:
         write_file(args.output, final_df)
@@ -137,8 +137,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('results_files', nargs='+',
                         help='Results CSV or Excel files')
-    parser.add_argument('--gold-files', '-g', nargs='+',
-                        help='Files containing gold labels')
+    parser.add_argument('--gold-file', '-g',
+                        help='File containing gold labels')
     parser.add_argument('--output', '-o', required=True,
                         help='Output file')
     args = parser.parse_args()
