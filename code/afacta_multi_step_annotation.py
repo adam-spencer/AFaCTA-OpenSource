@@ -484,6 +484,8 @@ async def main(args):
 
     if args.file_name.endswith('xlsx'):
         df = pd.read_excel(args.file_name)
+    elif args.file_name.endswith('tsv'):
+        df = pd.read_csv(args.file_name, encoding='utf-8', sep='\t')
     else:
         df = pd.read_csv(args.file_name, encoding='utf-8')
 
