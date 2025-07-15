@@ -4,6 +4,7 @@ import pandas as pd
 import random
 import re
 from sklearn.metrics import cohen_kappa_score, accuracy_score
+from process_results import load_file
 
 random.seed(42)
 
@@ -50,7 +51,7 @@ def mapping_two(l1, l2, neg):
 
 
 def main(df):
-    model_names = [x for x in df.columns if re.match(r'^[\w.]+[-:][\w.]+$', x)]
+    model_names = [x[:-3] for x in df.columns if x.endswith('-s1')]
     if 'zephyr' in df and 'llama' in df:
         model_names.extend(['zephyr', 'llama'])
     df = compute_likelihood(df, model_names)
@@ -139,42 +140,42 @@ def main(df):
             sub_df['Golden'], sub_df['label_1']
         ) + accuracy_score(
             sub_df['Golden'], sub_df['label_2'])) / 2)
-    print("\n\n")
+    # print("\n\n")
 
-    for model_name in model_names:
-        golden = df.loc[(df[model_name] == 0) | (
-            df[model_name] == 3), 'Golden'].to_list()
-        label_1 = df.loc[(df[model_name] == 0) | (
-            df[model_name] == 3), 'label_1'].to_list()
-        label_2 = df.loc[(df[model_name] == 0) | (
-            df[model_name] == 3), 'label_2'].to_list()
-        label = df.loc[(df[model_name] == 0) | (df[model_name] == 3),
-                       model_name].apply(lambda x: 0 if x == 0 else 1)
-        human_kappa = cohen_kappa_score(label_1, label_2)
-        ai_acc = accuracy_score(golden, label)
-        ai_kappa = (cohen_kappa_score(label, label_2) + (
-                    cohen_kappa_score(label, label_1))) / 2
-        human_acc = (accuracy_score(golden, label_2) + (
-                     accuracy_score(golden, label_1))) / 2
-        print('kappa of inconsistent samples', ai_kappa, human_kappa)
-        print('acc of inconsistent samples', ai_acc, human_acc)
-        golden = df.loc[(df[model_name] > 0) & (
-            df[model_name] < 3), 'Golden'].to_list()
-        label_1 = df.loc[(df[model_name] > 0) & (
-            df[model_name] < 3), 'label_1'].to_list()
-        label_2 = df.loc[(df[model_name] > 0) & (
-            df[model_name] < 3), 'label_2'].to_list()
-        label = df.loc[(df[model_name] > 0) & (df[model_name] < 3),
-                       model_name].apply(lambda x: 0 if x <= 1.5 else 1)
-        human_kappa = cohen_kappa_score(label_1, label_2)
-        ai_acc = accuracy_score(golden, label)
-        ai_kappa = (cohen_kappa_score(label, label_2) + (
-                    cohen_kappa_score(label, label_1))) / 2
-        human_acc = (accuracy_score(golden, label_2) + (
-                     accuracy_score(golden, label_1))) / 2
-        print('kappa of perfect consistent samples', ai_kappa, human_kappa)
-        print('acc of perfect consistent samples', ai_acc, human_acc)
-        print('\n')
+    # for model_name in model_names:
+    #     golden = df.loc[(df[model_name] == 0) | (
+    #         df[model_name] == 3), 'Golden'].to_list()
+    #     label_1 = df.loc[(df[model_name] == 0) | (
+    #         df[model_name] == 3), 'label_1'].to_list()
+    #     label_2 = df.loc[(df[model_name] == 0) | (
+    #         df[model_name] == 3), 'label_2'].to_list()
+    #     label = df.loc[(df[model_name] == 0) | (df[model_name] == 3),
+    #                    model_name].apply(lambda x: 0 if x == 0 else 1)
+    #     human_kappa = cohen_kappa_score(label_1, label_2)
+    #     ai_acc = accuracy_score(golden, label)
+    #     ai_kappa = (cohen_kappa_score(label, label_2) + (
+    #                 cohen_kappa_score(label, label_1))) / 2
+    #     human_acc = (accuracy_score(golden, label_2) + (
+    #                  accuracy_score(golden, label_1))) / 2
+    #     print('kappa of inconsistent samples', ai_kappa, human_kappa)
+    #     print('acc of inconsistent samples', ai_acc, human_acc)
+    #     golden = df.loc[(df[model_name] > 0) & (
+    #         df[model_name] < 3), 'Golden'].to_list()
+    #     label_1 = df.loc[(df[model_name] > 0) & (
+    #         df[model_name] < 3), 'label_1'].to_list()
+    #     label_2 = df.loc[(df[model_name] > 0) & (
+    #         df[model_name] < 3), 'label_2'].to_list()
+    #     label = df.loc[(df[model_name] > 0) & (df[model_name] < 3),
+    #                    model_name].apply(lambda x: 0 if x <= 1.5 else 1)
+    #     human_kappa = cohen_kappa_score(label_1, label_2)
+    #     ai_acc = accuracy_score(golden, label)
+    #     ai_kappa = (cohen_kappa_score(label, label_2) + (
+    #                 cohen_kappa_score(label, label_1))) / 2
+    #     human_acc = (accuracy_score(golden, label_2) + (
+    #                  accuracy_score(golden, label_1))) / 2
+    #     print('kappa of perfect consistent samples', ai_kappa, human_kappa)
+    #     print('acc of perfect consistent samples', ai_acc, human_acc)
+    #     print('\n')
 
 
 def confusion(num_answer, model, data):
@@ -231,18 +232,14 @@ def confusion(num_answer, model, data):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('filename', help='Results file to compute scores for')
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--data", type=int, default=0)
     parser.add_argument("--num_answer", type=int, default=0)
     parser.add_argument("--model", type=str, default='G3')
     args = parser.parse_args()
-    if args.data == 0:
-        df = pd.read_excel(
-            'data/PoliClaim_test/policlaim_gpt_with_human_eval_merged.xlsx')
-    else:
-        df = pd.read_excel(
-            'data/CLEF-2021_test/CLEF2021_gpt_with_human_eval.xlsx')
+    df = load_file(args.filename)
     if args.num_answer == 0:
         main(df)
     else:
+        # TODO remove or change confusion function
         confusion(args.num_answer, args.model, args.data)

@@ -1,19 +1,18 @@
-import pandas as pd
 import argparse
-import random
-# import os
-import time
-# from langchain.chat_models import ChatOpenAI
+import asyncio
+from collections import Counter
+import json
 from langchain_ollama.chat_models import ChatOllama
 from langchain.schema import (
     HumanMessage,
     SystemMessage
 )
-import json
-import asyncio
 import numpy as np
-
-# os.environ["OPENAI_API_KEY"] = "sk-xxx"
+import pandas as pd
+import random
+import re
+from pathlib import Path
+# import time
 
 SYSTEM_PROMPT = """You are an AI assistant who helps fact-checkers to identify fact-like information in statements.
 """
@@ -175,6 +174,7 @@ def _find_answer(string, name="FACT_PART"):
 
 
 def parse_part2(all_answers, keys):
+    # TODO consider rewriting this using `json` module
     return_lists = {k: [] for k in keys}
     for answers in all_answers:
         lists = {k: [] for k in keys}
@@ -251,30 +251,31 @@ def lean_to_answer(answer, first):
             return "Not defined: " + answer
 
 
-def compute_likelihood(to_label, golden):
-    if to_label.endswith('xlsx'):
-        df_to_eval = pd.read_excel(to_label)
-    else:
-        df_to_eval = pd.read_csv(to_label, encoding='utf-8')
-    if golden.endswith('xlsx'):
-        df_golden = pd.read_excel(golden)
-    else:
-        df_golden = pd.read_csv(golden)
-
-    p1 = df_to_eval['veri_aggregated'].apply(
-        lambda x: 1 if "yes" in x.lower() else 0).values
-    p2 = df_to_eval['p2_aggregated'].apply(lambda x: 1 if x else 0).values
-    p3_1 = df_to_eval['ob_aggregated'].apply(
-        lambda x: 1 if "objective" in x.lower() else 0).values
-    p3_2 = df_to_eval['sub_aggregated'].apply(
-        lambda x: 1 if "objective" in x.lower() else 0).values
-
-    df_to_eval['likely'] = p1 + p2 + p3_1 + p3_2
-    df_to_eval['likely_2'] = p1 + p2 + ((p3_1 + p3_2) > 0).astype(int)
-    df_to_eval['likely_1'] = p1 + p2 + 0.5 * p3_1 + 0.5 * p3_2
-    df_to_eval['GOLD'] = df_golden['VERIFIABILITY_GOLDEN']
-
-    df_to_eval.to_excel(to_label.replace('.csv', '.xlsx'), index=False)
+# TODO delete this block?
+# def compute_likelihood(to_label, golden):
+#     if to_label.endswith('xlsx'):
+#         df_to_eval = pd.read_excel(to_label)
+#     else:
+#         df_to_eval = pd.read_csv(to_label, encoding='utf-8')
+#     if golden.endswith('xlsx'):
+#         df_golden = pd.read_excel(golden)
+#     else:
+#         df_golden = pd.read_csv(golden)
+#
+#     p1 = df_to_eval['veri_aggregated'].apply(
+#         lambda x: 1 if "yes" in x.lower() else 0).values
+#     p2 = df_to_eval['p2_aggregated'].apply(lambda x: 1 if x else 0).values
+#     p3_1 = df_to_eval['ob_aggregated'].apply(
+#         lambda x: 1 if "objective" in x.lower() else 0).values
+#     p3_2 = df_to_eval['sub_aggregated'].apply(
+#         lambda x: 1 if "objective" in x.lower() else 0).values
+#
+#     df_to_eval['likely'] = p1 + p2 + p3_1 + p3_2
+#     df_to_eval['likely_2'] = p1 + p2 + ((p3_1 + p3_2) > 0).astype(int)
+#     df_to_eval['likely_1'] = p1 + p2 + 0.5 * p3_1 + 0.5 * p3_2
+#     df_to_eval['GOLD'] = df_golden['VERIFIABILITY_GOLDEN']
+#
+#     df_to_eval.to_excel(to_label.replace('.csv', '.xlsx'), index=False)
 
 
 # CHANGED: Made the function async
@@ -441,9 +442,26 @@ async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences,
     df_p2 = pd.DataFrame({'SENTENCES': sentences})
     for i in range(args.num_gen):
         for k in p2_keys:
+            # TODO change this!
+            #   * remove str(i + 1)
+            #   * as num_gen is no longer used (Ollama doesn't support)
+            #   * unless rewriting to use num_gen?
             df_p2[k + str(i + 1)] = [
                 l[i] if len(l) > i else None for l in answer_lists[k]]
     df_p2['p2_aggregated'] = aggregated_answer
+
+    # Find all columns that start with 'CATEGORY'
+    category_cols = [
+        col for col in df_p2.columns if col.startswith('CATEGORY')]
+    # If category columns exist, find the most frequent value (mode) for each row
+    if category_cols:
+        # Using .mode(axis=1) finds the mode across the columns for each row.
+        # .iloc[:, 0] selects the first mode if there are multiple.
+        df_p2['CATEGORY'] = df_p2[category_cols].mode(axis=1).iloc[:, 0]
+    else:
+        # If no category columns were created, fill with a placeholder
+        df_p2['CATEGORY'] = None
+
     if confusion is not None:
         df_p2['p2_confusion'] = confusion
 
@@ -466,6 +484,8 @@ async def main(args):
 
     if args.file_name.endswith('xlsx'):
         df = pd.read_excel(args.file_name)
+    elif args.file_name.endswith('tsv'):
+        df = pd.read_csv(args.file_name, encoding='utf-8', sep='\t')
     else:
         df = pd.read_csv(args.file_name, encoding='utf-8')
 
@@ -547,6 +567,13 @@ if __name__ == '__main__':
     parser.add_argument("--num_gen", type=int, default=1)
     parser.add_argument("--sleep", type=int, default=5)
     args = parser.parse_args()
+
+    # Unless otherwise defined, generate output name
+    # Expects filename shape [dataname]<_processed>[.ext]
+    if args.output_name == '':
+        args.output_name = (
+            f'{re.split(r'[_.]', Path(args.file_name).name)[0]}'
+            f'_{args.llm_name}')
 
     # CHANGED: The script is now started with a single asyncio.run() call
     asyncio.run(main(args))
