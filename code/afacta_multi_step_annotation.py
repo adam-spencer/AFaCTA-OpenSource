@@ -227,7 +227,8 @@ def sync_api_call(llm, messages, gen_num, batch_size=10):
     all_outputs = []
     for b in batches:
         time.sleep(0.1)
-        outputs = llm.generate(b)
+        # outputs = llm.generate(b)
+        outputs = llm.batch(b)
         output_texts = [[g.text for g in outputs.generations[i]]
                         for i in range(len(outputs.generations))]
         all_outputs.extend(output_texts)
