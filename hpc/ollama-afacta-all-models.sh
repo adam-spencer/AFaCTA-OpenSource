@@ -26,7 +26,7 @@ apptainer exec instance://$INSTANCE_NAME \
 
 sleep 15
 
-models=("gemma3:12b" "llama3.1:8b-instruct-fp16" "falcon3:10b-instruct-fp16" "mistral:7b-instruct-v0.3-fp16" "qwen3:8b-fp16")
+models=("gemma3:12b-it-fp16" "llama3.1:8b-instruct-fp16" "falcon3:10b-instruct-fp16" "mistral:7b-instruct-v0.3-fp16" "qwen2.5:7b-instruct-fp16")
 
 echo "Beginning loop..."
 for model in ${models[@]}; do
