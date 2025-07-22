@@ -74,9 +74,9 @@ def load_file(filename: str) -> pd.DataFrame:
 def write_file(output_name: str, df: pd.DataFrame) -> None:
     """Write df to file independent of extension."""
     if output_name.endswith('xlsx'):
-        df = df.to_excel(output_name)
+        df = df.to_excel(output_name, index=False)
     else:
-        df = df.to_csv(output_name)
+        df = df.to_csv(output_name, index=False)
     return df
 
 
