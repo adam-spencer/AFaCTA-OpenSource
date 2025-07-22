@@ -13,6 +13,32 @@ from collections import defaultdict
 from functools import reduce
 import pandas as pd
 from pathlib import Path
+import numpy as np
+
+
+# ripped from compute_scores_updated.py
+def compute_likelihood(df_to_eval, model_names):
+    for model in model_names:
+        # Skip incorrectly formatted cols (original llama and zephyr)
+        if f'{model}-s1' not in df_to_eval.columns:
+            continue
+        p1 = df_to_eval[f'{model}-s1'].apply(
+            lambda x: 1 if "yes" in x.lower() else 0).values
+        p2 = []
+        for i, c in zip(df_to_eval[f'{model}-s2'],
+                        df_to_eval[f'{model}-category']):
+            if i or 'C0' not in c:
+                p2.append(1)
+            else:
+                p2.append(0)
+        p2 = np.array(p2)
+        p3_1 = df_to_eval[f'{model}-s3-1'].apply(
+            lambda x: 1 if "objective" in x.lower() else 0).values
+        p3_2 = df_to_eval[f'{model}-s3-2'].apply(
+            lambda x: 1 if "objective" in x.lower() else 0).values
+
+        df_to_eval[model] = p1 + p2 + 0.5 * p3_1 + 0.5 * p3_2
+    return df_to_eval
 
 
 def rename_and_filter_model_cols(df: pd.DataFrame, model_name: str
@@ -112,6 +138,8 @@ def main(args):
 
     # Join resultant dataframes
     final_df = merge_result_dfs(model_dfs)
+    if args.likelihood:
+        final_df = compute_likelihood(final_df, results_files.keys())
     if args.gold_file:
         df_gold = combine_gold_labels(args.gold_file, final_df)
         write_file(args.output, df_gold)
@@ -127,5 +155,7 @@ if __name__ == '__main__':
                         help='File containing gold labels')
     parser.add_argument('--output', '-o', required=True,
                         help='Output file')
+    parser.add_argument('--likelihood', '-l', action='store_true',
+                        help='Include likelihood calculation in output')
     args = parser.parse_args()
     main(args)
