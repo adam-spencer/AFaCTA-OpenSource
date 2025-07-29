@@ -8,7 +8,6 @@ authors:
 """
 import argparse
 import asyncio
-from collections import Counter
 import json
 from langchain_ollama.chat_models import ChatOllama
 from langchain.schema import (
@@ -20,16 +19,11 @@ import pandas as pd
 import random
 import re
 from pathlib import Path
-"""
-TODO:
-  * Remove references to context specification
-  * Replace 'political speech' with 'Twitter'
-"""
 
 SYSTEM_PROMPT = """You are an AI assistant who helps fact-checkers to identify fact-like information in statements.
 """
 
-PROMPT_PART_2_0905 = """Statements in political speech are usually based on facts to draw reasonable conclusions.
+PROMPT_PART_2_0905 = """Statements in Tweets are usually based on facts to draw reasonable conclusions.
 
 Categories of fact:
 C1. Mentioning somebody (including the speaker) did or is doing something specific and objective.
@@ -38,12 +32,11 @@ C3. Claiming a correlation or causation.
 C4. Assertion of existing laws or rules of operation.
 C5. Pledging a specific future plan or making specific predictions about future.
 
-Please first analyze the objective and subjective information that the following <statement> (from a political speech) covers.
+Please first analyze the objective and subjective information that the following <statement> (from a Tweet) covers.
 Then extract the fact that the <statement> is based on.
 Then carefully reason about if the extracted fact is objectively verifiable.
 Finally answer if the fact falls into the above categories (C1 to C5) or not (C0).
 
-Context for <statement> to help you understand it better: "...{context}..."
 <statement>: "{sentence}"
 
 Format your answer in JSON with the following keys in order:
@@ -56,30 +49,26 @@ Format your answer in JSON with the following keys in order:
 }}
 """
 
-PROMPT_PART_1_VERIFIABILITY = """Given the <context> of the following <sentence> from a political speech, does it contain any objective information?
+PROMPT_PART_1_VERIFIABILITY = """Given the following <sentence> from a Tweet, does it contain any objective information?
 
-<context>: "...{context}..."
 <sentence>: "{sentence}"
 
 Answer with Yes or No only.
 """
 
-PROMPT_OBJECTIVE = """Concisely argue that the following <sentence> from a political speech does contain some objective information.
+PROMPT_OBJECTIVE = """Concisely argue that the following <sentence> from a Tweet does contain some objective information.
 
-Context of <sentence> in the speech: "...{context}..."
 <sentence>: "{sentence}"
 """
 
 
-PROMPT_SUBJECTIVE = """Concisely argue that the following <sentence> from a political speech does not contain any objective information.
+PROMPT_SUBJECTIVE = """Concisely argue that the following <sentence> from a Tweet does not contain any objective information.
 
-Context of <sentence> in the speech: "...{context}..."
 <sentence>: "{sentence}"
 """
 
-JUDGE_PROMPT = """Two AI assistants are debating about whether the following <sentence> (from a political speech) contains any objectively verifiable information.
+JUDGE_PROMPT = """Two AI assistants are debating about whether the following <sentence> (from a Tweet) contains any objectively verifiable information.
 
-Context of <sentence> in the speech: "...{context}..."
 <sentence>: "{sentence}"
 
 Assistant A's View: "{assistant_a}"
@@ -218,20 +207,6 @@ def batchify_list(input_list, batch_size):
     return batches
 
 
-def contextualize_sentences(sentences, window_size=1):
-    contexts = []
-    # If window_size is 0, just return the sentences themselves as context
-    if window_size == 0:
-        return sentences
-
-    for i in range(len(sentences)):
-        start_index = max(0, i - window_size)
-        end_index = min(len(sentences), i + window_size + 1)
-        context_sentences = sentences[start_index:end_index]
-        contexts.append(" ".join(context_sentences))
-    return contexts
-
-
 async def async_api_call(llm, messages, gen_num, batch_size=10):
     batches = batchify_list(messages, batch_size)
     all_outputs = []
@@ -291,15 +266,14 @@ def lean_to_answer(answer, first):
 
 
 # CHANGED: Made the function async
-async def debate(args, llm, sentences, contexts):
+async def debate(args, llm, sentences):
     if args.load_debate == "":
         objective_prompts = [
             [
                 SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=PROMPT_OBJECTIVE.format(
-                    sentence=s, context=c))
+                HumanMessage(content=PROMPT_OBJECTIVE.format(sentence=s))
             ]
-            for s, c in zip(sentences, contexts)
+            for s in sentences
         ]
         # CHANGED: Replaced asyncio.run() with await
         objective_outputs = await async_api_call(llm, objective_prompts, 1)
@@ -308,10 +282,9 @@ async def debate(args, llm, sentences, contexts):
         subjective_prompts = [
             [
                 SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=PROMPT_SUBJECTIVE.format(
-                    sentence=s, context=c))
+                HumanMessage(content=PROMPT_SUBJECTIVE.format(sentence=s))
             ]
-            for s, c in zip(sentences, contexts)
+            for s in sentences
         ]
         # CHANGED: Replaced asyncio.run() with await
         subjective_outputs = await async_api_call(llm, subjective_prompts, 1)
@@ -338,11 +311,10 @@ async def debate(args, llm, sentences, contexts):
         [
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=judge_prompt.format(
-                sentence=s, context=c, assistant_a=ob,
-                assistant_b=sub))
+                sentence=s, assistant_a=ob, assistant_b=sub))
         ]
-        for s, c, ob, sub in zip(sentences, contexts, objective_outputs,
-                                 subjective_outputs)
+        for s, ob, sub in zip(sentences, objective_outputs,
+                              subjective_outputs)
     ]
 
     # CHANGED: Replaced asyncio.run() with await
@@ -360,11 +332,9 @@ async def debate(args, llm, sentences, contexts):
         [
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=judge_prompt.format(
-                sentence=s, context=c, assistant_a=sub,
-                assistant_b=ob))
+                sentence=s, assistant_a=sub, assistant_b=ob))
         ]
-        for s, c, ob, sub in zip(sentences, contexts, objective_outputs,
-                                 subjective_outputs)
+        for s, ob, sub in zip(sentences, objective_outputs, subjective_outputs)
     ]
 
     # CHANGED: Replaced asyncio.run() with await
@@ -405,14 +375,14 @@ async def opinion(args, llm, prompt, sentences):
 
 
 # CHANGED: Made the function async
-async def verifiability(args, llm, prompt, sentences, contexts):
+async def verifiability(args, llm, prompt, sentences):
     verifiability_prompts = [
         [
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=prompt.format(
-                sentence=s, context=c))
+                sentence=s))
         ]
-        for s, c in zip(sentences, contexts)
+        for s in sentences
     ]
 
     # CHANGED: Replaced asyncio.run() with await
@@ -430,15 +400,13 @@ async def verifiability(args, llm, prompt, sentences, contexts):
 
 
 # CHANGED: Made the function async
-async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences,
-                 contexts):
+async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences):
     part2_prompts = [
         [
             SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=prompt.format(
-                sentence=s, context=c))
+            HumanMessage(content=prompt.format(sentence=s))
         ]
-        for s, c in zip(sentences, contexts)
+        for s in sentences
     ]
 
     # CHANGED: Replaced asyncio.run() with await
@@ -507,11 +475,6 @@ async def main(args):
     if args.sample > 0:
         sentences = random.sample(sentences, args.sample)
 
-    print("INFO: Generating text contexts with a window size of "
-          f"{args.context}...")
-    contexts = contextualize_sentences(sentences, window_size=args.context)
-    print("INFO: Context generation complete.")
-
     if args.num_gen > 1:
         temperature = 0.7
     else:
@@ -524,7 +487,7 @@ async def main(args):
         # Part 1 verifiability
         # CHANGED: Added await
         df_p1_verifiability = await verifiability(
-            args, llm, P1_VERIFIABILITY, sentences, contexts)
+            args, llm, P1_VERIFIABILITY, sentences)
         await asyncio.sleep(args.sleep)
     else:
         df_p1_verifiability = pd.read_csv(
@@ -535,7 +498,7 @@ async def main(args):
     if not args.skip_p2:
         # CHANGED: Added await
         df_p2 = await part_2(args, llm, PART_2_PROMPT, PART2_KEYS,
-                             verifiable_key, sentences, contexts)
+                             verifiable_key, sentences)
     else:
         df_p2 = pd.read_csv(
             args.load_p2 + '_p2_' + str(args.num_gen) + '.csv',
@@ -544,7 +507,7 @@ async def main(args):
     # Part 3 debate annotation
     if not args.skip_p3:
         # CHANGED: Added await
-        df_p3 = await debate(args, llm, sentences, contexts)
+        df_p3 = await debate(args, llm, sentences)
     else:
         df_p3 = pd.read_csv(
             args.load_p3 + '_p3_' + str(args.num_gen) + '.csv',
@@ -570,7 +533,6 @@ if __name__ == '__main__':
     parser.add_argument("--load_p3", type=str, default="")
     parser.add_argument("--llm_name", type=str,
                         default="llama3.1:8b")
-    parser.add_argument("--context", type=int, default=1)
     parser.add_argument("--skip_p1", action="store_true", default=False)
     parser.add_argument("--skip_p2", action="store_true", default=False)
     parser.add_argument("--skip_p3", action="store_true", default=False)
