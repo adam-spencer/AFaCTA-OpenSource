@@ -546,7 +546,7 @@ if __name__ == '__main__':
     # Expects filename shape [dataname]<_processed>[.ext]
     if args.output_name == '':
         args.output_name = (
-            f'{re.split(r'[_.]', Path(args.file_name).name)[0]}'
+            f'twit_{re.split(r'[_.]', Path(args.file_name).name)[0]}'
             f'_{args.llm_name}')
 
     # CHANGED: The script is now started with a single asyncio.run() call
