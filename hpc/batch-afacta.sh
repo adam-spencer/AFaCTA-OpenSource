@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Configuration ---
-SLURM_SCRIPT="run-afacta.sh"
+SLURM_SCRIPT="hpc/run-afacta.sh"
 MODELS=(
     "phi3:14b-medium-128k-instruct-q8_0"
     "deepseek-r1:8b-llama-distill-fp16"
