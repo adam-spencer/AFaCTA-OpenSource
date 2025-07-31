@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import random
 import re
+import os
 from pathlib import Path
 # import time
 
@@ -505,8 +506,13 @@ async def main(args):
     else:
         temperature = 0
 
+    ollama_port = os.getenv('OLLAMA_PORT', '11434')
     llm = ChatOllama(
-        model=args.llm_name, temperature=temperature, num_predict=512)
+        model=args.llm_name,
+        temperature=temperature,
+        num_predict=512,
+        base_url=f"http://localhost:{ollama_port}"
+    )
 
     if not args.skip_p1:
         # Part 1 verifiability
