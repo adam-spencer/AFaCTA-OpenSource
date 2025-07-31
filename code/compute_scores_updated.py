@@ -150,22 +150,20 @@ def main(df):
                     sub_df['label_2'], sub_df[f'{model_name}_label'])) / 2)
         print('Accuracy score: ', accuracy_score(
             sub_df['Golden'], sub_df[f'{model_name}_label']))
-        print('Accuracy score: ', accuracy_score(
-            df['Golden'], df[f'{model_name}_label']))
         print('Recall Score (negative): ', recall_score(
-            df['Golden'], df[f'{model_name}_label'], pos_label=0))
+            sub_df['Golden'], sub_df[f'{model_name}_label'], pos_label=0))
         print('Precision Score (negative): ', precision_score(
-            df['Golden'], df[f'{model_name}_label'], pos_label=0))
+            sub_df['Golden'], sub_df[f'{model_name}_label'], pos_label=0))
         print('Recall Score (positive): ', recall_score(
-            df['Golden'], df[f'{model_name}_label']))
+            sub_df['Golden'], sub_df[f'{model_name}_label']))
         print('Precision Score (positive): ', precision_score(
-            df['Golden'], df[f'{model_name}_label']))
+            sub_df['Golden'], sub_df[f'{model_name}_label']))
         print('F1 Score (positive): ', f1_score(
-            df['Golden'], df[f'{model_name}_label']))
+            sub_df['Golden'], sub_df[f'{model_name}_label']))
         print('F1 Score (negative): ', f1_score(
-            df['Golden'], df[f'{model_name}_label'], pos_label=0))
+            sub_df['Golden'], sub_df[f'{model_name}_label'], pos_label=0))
         print('Macro F1 Score: ', f1_score(
-            df['Golden'], df[f'{model_name}_label'], average='macro'))
+            sub_df['Golden'], sub_df[f'{model_name}_label'], average='macro'))
 
     if compute_kappa:
         print('Human kappa', cohen_kappa_score(
