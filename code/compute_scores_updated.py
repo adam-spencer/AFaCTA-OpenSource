@@ -1,7 +1,12 @@
 import argparse
 import numpy as np
 import random
-from sklearn.metrics import cohen_kappa_score, accuracy_score
+from sklearn.metrics import (
+    cohen_kappa_score,
+    accuracy_score,
+    recall_score,
+    precision_score,
+    f1_score)
 from process_results import load_file
 
 random.seed(42)
@@ -135,6 +140,7 @@ def main(df):
             ) + accuracy_score(
                 sub_df['Golden'],
                 mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))) / 2)
+
         print("Aggregated label")
         if compute_kappa:
             print(f'{model_name}-human kappa score', (
@@ -144,6 +150,22 @@ def main(df):
                     sub_df['label_2'], sub_df[f'{model_name}_label'])) / 2)
         print('Accuracy score: ', accuracy_score(
             sub_df['Golden'], sub_df[f'{model_name}_label']))
+        print('Accuracy score: ', accuracy_score(
+            df['Golden'], df[f'{model_name}_label']))
+        print('Recall Score (negative): ', recall_score(
+            df['Golden'], df[f'{model_name}_label'], pos_label=0))
+        print('Precision Score (negative): ', precision_score(
+            df['Golden'], df[f'{model_name}_label'], pos_label=0))
+        print('Recall Score (positive): ', recall_score(
+            df['Golden'], df[f'{model_name}_label']))
+        print('Precision Score (positive): ', precision_score(
+            df['Golden'], df[f'{model_name}_label']))
+        print('F1 Score (positive): ', f1_score(
+            df['Golden'], df[f'{model_name}_label']))
+        print('F1 Score (negative): ', f1_score(
+            df['Golden'], df[f'{model_name}_label'], pos_label=0))
+        print('Macro F1 Score: ', f1_score(
+            df['Golden'], df[f'{model_name}_label'], average='macro'))
 
     if compute_kappa:
         print('Human kappa', cohen_kappa_score(
