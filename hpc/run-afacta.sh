@@ -30,7 +30,15 @@ export OLLAMA_MODELS=/mnt/parscratch/users/acr24as/ollama_models
 # --- Set Ollama port in valid range ---
 BASE_PORT=49152
 PORT_RANGE=16383 # (65535 - 49152)
-export OLLAMA_PORT=$((BASE_PORT + SLURM_JOB_ID % PORT_RANGE))
+OLLAMA_PORT=$((BASE_PORT + SLURM_JOB_ID % PORT_RANGE))
+
+while ss -tuln | grep -q ":${OLLAMA_PORT}"
+do
+  echo "Port ${OLLAMA_PORT} is in use, trying next..."
+  OLLAMA_PORT=$((OLLAMA_PORT + 1))
+done
+
+export OLLAMA_PORT
 export OLLAMA_HOST="0.0.0.0:${OLLAMA_PORT}"
 
 # --- Start Ollama Server ---
