@@ -27,8 +27,14 @@ module load cuDNN/8.9.2.26-CUDA-12.1.1
 source activate afacta
 export OLLAMA_MODELS=/mnt/parscratch/users/acr24as/ollama_models
 
+# --- Set Ollama port in valid range ---
+BASE_PORT=49152
+PORT_RANGE=16383 # (65535 - 49152)
+export OLLAMA_PORT=$((BASE_PORT + SLURM_JOB_ID % PORT_RANGE))
+export OLLAMA_HOST="0.0.0.0:${OLLAMA_PORT}"
+
 # --- Start Ollama Server ---
-echo "Starting Ollama server..."
+echo "Starting Ollama server on $OLLAMA_HOST..."
 OLLAMA_SIF_PATH="/${HOME}/ollama-container/ollama.sif"
 INSTANCE_NAME="ollama-job-${SLURM_JOB_ID}"
 apptainer instance start --nv "$OLLAMA_SIF_PATH" "$INSTANCE_NAME"
