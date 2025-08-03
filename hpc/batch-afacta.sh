@@ -37,7 +37,7 @@ done
 # Check if a file path was provided
 if [ -z "$FILE_PATH" ]; then
     echo "Error: No file path specified."
-    echo "Usage: ./submit_jobs.sh <path/to/file.csv> [-t]"
+    echo "Usage: $0 <path/to/file.csv> [-t]"
     exit 1
 fi
 
