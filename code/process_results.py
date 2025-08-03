@@ -94,7 +94,7 @@ def load_file(filename: str) -> pd.DataFrame:
         df = pd.read_excel(filename)
     else:
         df = pd.read_csv(filename, encoding='utf-8')
-    return df
+    return df.drop_duplicates(subset=['SENTENCES'])
 
 
 def write_file(output_name: str, df: pd.DataFrame) -> None:
@@ -117,12 +117,14 @@ def combine_gold_labels(gold_label_file: str, df: pd.DataFrame
 
 def main(args):
     # Collect results files by model & origin
+    print('start')
     results_files = defaultdict(dict)
     for file in args.results_files:
-        origin, model, _ = Path(file).name.rstrip('.csv').split('_')
+        origin, model = Path(file).name.rstrip('_1.csv').split('_', 1)
         results_files[model][origin] = file
 
     # Concatenate results by model
+    print('concat results by model')
     model_dfs = []
     for model, origin_dict in results_files.items():
         dfs = []
@@ -137,11 +139,15 @@ def main(args):
         model_dfs.append(df_concat)
 
     # Join resultant dataframes
+    print('join dfs')
     final_df = merge_result_dfs(model_dfs)
     if args.likelihood:
+        print('likelihood...')
         final_df = compute_likelihood(final_df, results_files.keys())
     if args.gold_file:
+        print('gold file join...')
         df_gold = combine_gold_labels(args.gold_file, final_df)
+        print('write file...')
         write_file(args.output, df_gold)
     else:
         write_file(args.output, final_df)
