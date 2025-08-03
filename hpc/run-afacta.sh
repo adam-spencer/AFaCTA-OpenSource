@@ -32,7 +32,7 @@ BASE_PORT=49152
 PORT_RANGE=16383 # (65535 - 49152)
 OLLAMA_PORT=$((BASE_PORT + SLURM_JOB_ID % PORT_RANGE))
 
-while ss -tuln | grep -q ":${OLLAMA_PORT}"
+while netstat -tuln | grep -q ":${OLLAMA_PORT}"
 do
   echo "Port ${OLLAMA_PORT} is in use, trying next..."
   OLLAMA_PORT=$((OLLAMA_PORT + 1))
@@ -46,7 +46,8 @@ echo "Starting Ollama server on $OLLAMA_HOST..."
 OLLAMA_SIF_PATH="/${HOME}/ollama-container/ollama.sif"
 INSTANCE_NAME="ollama-job-${SLURM_JOB_ID}"
 apptainer instance start --nv "$OLLAMA_SIF_PATH" "$INSTANCE_NAME"
-apptainer exec instance://$INSTANCE_NAME bash -c "ollama serve &"
+apptainer exec --env OLLAMA_HOST="${OLLAMA_HOST}" \
+  instance://$INSTANCE_NAME bash -c "ollama serve &"
 sleep 15
 
 # --- Run Python Script based on flag ---
