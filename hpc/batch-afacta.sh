@@ -3,6 +3,11 @@
 # --- Configuration ---
 SLURM_SCRIPT="hpc/run-afacta.sh"
 MODELS=(
+    "dolphin3:8b-llama3.1-fp16"
+    "qwen3:14b-q8_0"
+    "qwen2.5:14b-instruct-q8_0"
+    "llama3.1:70b-instruct-q2_K"
+    "gemma3:12b-it-bf16"
     "phi3:14b-medium-128k-instruct-q8_0"
     "deepseek-r1:8b-llama-distill-fp16"
     "deepseek-r1:14b-qwen-distill-q8_0"
