@@ -208,6 +208,13 @@ def batchify_list(input_list, batch_size):
     return batches
 
 
+def remove_thinking_tokens(text: str):
+    """Remove <think(ing)> block from model response."""
+    pattern = r'<think(ing)?>(.*?)</think(ing)?>'
+    cleaned_text = re.sub(pattern, '', text, flags=re.DOTALL).strip()
+    return cleaned_text
+
+
 async def async_api_call(llm, messages, gen_num, batch_size=10):
     batches = batchify_list(messages, batch_size)
     all_outputs = []
@@ -216,8 +223,9 @@ async def async_api_call(llm, messages, gen_num, batch_size=10):
         # REMOVED n=gen_num, as it's not supported by Ollama
         outputs = await llm.agenerate(b)
         # The logic here assumes n=1, so we get the first generation.
-        output_texts = [[g.text for g in outputs.generations[i]]
-                        for i in range(len(outputs.generations))]
+        output_texts = [
+            [remove_thinking_tokens(g.text) for g in outputs.generations[i]]
+            for i in range(len(outputs.generations))]
         all_outputs.extend(output_texts)
     return all_outputs
 
@@ -485,7 +493,7 @@ async def main(args):
     llm = ChatOllama(
         model=args.llm_name,
         temperature=temperature,
-        num_predict=512,
+        num_predict=args.num_tokens,
         base_url=f"http://localhost:{ollama_port}"
     )
 
@@ -546,6 +554,7 @@ if __name__ == '__main__':
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num_gen", type=int, default=1)
     parser.add_argument("--sleep", type=int, default=5)
+    parser.add_argument("--num-tokens", type=int, default=512)
     args = parser.parse_args()
 
     # Unless otherwise defined, generate output name
