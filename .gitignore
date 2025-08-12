@@ -9,3 +9,4 @@ out/
 slurm-*
 .ipynb_checkpoints/
 .DS_Store
+*.jsonl
