@@ -24,7 +24,14 @@ from pathlib import Path
 SYSTEM_PROMPT = """You are an AI assistant who helps fact-checkers to identify fact-like information in statements.
 """
 
-PROMPT_PART_2_0905 = """Statements in Tweets are usually based on facts to draw reasonable conclusions.
+PROMPT_PART_1 = """Given the following <sentence> from a Tweet, does it contain any objective information?
+
+<sentence>: "{sentence}"
+
+Answer with Yes or No only.
+"""
+
+PROMPT_PART_2 = """Statements in Tweets are usually based on facts to draw reasonable conclusions.
 
 Categories of fact:
 C1. Mentioning somebody (including the speaker) did or is doing something specific and objective.
@@ -50,13 +57,6 @@ Format your answer in JSON with the following keys in order:
 }}
 """
 
-PROMPT_PART_1_VERIFIABILITY = """Given the following <sentence> from a Tweet, does it contain any objective information?
-
-<sentence>: "{sentence}"
-
-Answer with Yes or No only.
-"""
-
 PROMPT_OBJECTIVE = """Concisely argue that the following <sentence> from a Tweet does contain some objective information.
 
 <sentence>: "{sentence}"
@@ -78,6 +78,15 @@ Assistant B's View: "{assistant_b}"
 
 Based on the above, does <sentence> contain any objectively verifiable information? Which perspective do you align with more closely?
 Please reply with "Lean towards A", or "Lean towards B" only."""
+
+prompts = {
+    'SYSTEM_PROMPT': SYSTEM_PROMPT,
+    'PROMPT_PART_2': PROMPT_PART_2,
+    'PROMPT_PART_1': PROMPT_PART_1,
+    'PROMPT_OBJECTIVE': PROMPT_OBJECTIVE,
+    'PROMPT_SUBJECTIVE': PROMPT_SUBJECTIVE,
+    'JUDGE_PROMPT': JUDGE_PROMPT
+}
 
 
 def judge_vote(answer_lists):
@@ -279,8 +288,9 @@ async def debate(args, llm, sentences):
     if args.load_debate == "":
         objective_prompts = [
             [
-                SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=PROMPT_OBJECTIVE.format(sentence=s))
+                SystemMessage(content=prompts['SYSTEM_PROMPT']),
+                HumanMessage(
+                    content=prompts['PROMPT_OBJECTIVE'].format(sentence=s))
             ]
             for s in sentences
         ]
@@ -290,8 +300,9 @@ async def debate(args, llm, sentences):
 
         subjective_prompts = [
             [
-                SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=PROMPT_SUBJECTIVE.format(sentence=s))
+                SystemMessage(content=prompts['SYSTEM_PROMPT']),
+                HumanMessage(
+                    content=prompts['PROMPT_SUBJECTIVE'].format(sentence=s))
             ]
             for s in sentences
         ]
@@ -315,10 +326,10 @@ async def debate(args, llm, sentences):
     await asyncio.sleep(args.sleep)
     df_debate_results = df_debate
 
-    judge_prompt = JUDGE_PROMPT
+    judge_prompt = prompts['JUDGE_PROMPT']
     objective_first_prompts = [
         [
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=prompts['SYSTEM_PROMPT']),
             HumanMessage(content=judge_prompt.format(
                 sentence=s, assistant_a=ob, assistant_b=sub))
         ]
@@ -339,7 +350,7 @@ async def debate(args, llm, sentences):
 
     subjective_first_prompts = [
         [
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=prompts['SYSTEM_PROMPT']),
             HumanMessage(content=judge_prompt.format(
                 sentence=s, assistant_a=sub, assistant_b=ob))
         ]
@@ -364,7 +375,7 @@ async def debate(args, llm, sentences):
 async def opinion(args, llm, prompt, sentences):
     fact_opinion_prompts = [
         [
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=prompts['SYSTEM_PROMPT']),
             HumanMessage(content=prompt.format(sentence=s))
         ]
         for s in sentences
@@ -387,7 +398,7 @@ async def opinion(args, llm, prompt, sentences):
 async def verifiability(args, llm, prompt, sentences):
     verifiability_prompts = [
         [
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=prompts['SYSTEM_PROMPT']),
             HumanMessage(content=prompt.format(
                 sentence=s))
         ]
@@ -412,7 +423,7 @@ async def verifiability(args, llm, prompt, sentences):
 async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences):
     part2_prompts = [
         [
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=prompts['SYSTEM_PROMPT']),
             HumanMessage(content=prompt.format(sentence=s))
         ]
         for s in sentences
@@ -461,8 +472,10 @@ async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences):
 
 # CHANGED: Made the main function async
 async def main(args):
-    P1_VERIFIABILITY = PROMPT_PART_1_VERIFIABILITY
-    PART_2_PROMPT = PROMPT_PART_2_0905
+    print(SYSTEM_PROMPT)
+    quit()
+    P1_VERIFIABILITY = prompts['PROMPT_PART_1']
+    PART_2_PROMPT = prompts['PROMPT_PART_2']
 
     PART2_KEYS = ["ANALYSIS", "FACT_PART",
                   "VERIFIABLE_REASON", "VERIFIABILITY", "CATEGORY"]
@@ -537,6 +550,37 @@ async def main(args):
     # compute_likelihood(args.output_name + '_' + str(args.num_gen) + '.csv', args.file_name)
 
 
+def apply_custom_prompts(file: str) -> None:
+    """
+    Replace prompts with those from a given JSON file.
+
+    Expects a file with format like like:
+    {
+        "SYSTEM_PROMPT": "This is the system prompt...",
+        "PROMPT_PART_2": "This is the part 2 prompt...",
+        ...
+    }
+
+    Prompts that don't feature in the JSON file will remain unchanged.
+
+    Prompting Guidelines:
+    ====================
+      * All non-system prompts should mention "the following <sentence>" and
+        contain the line: <sentence>: "{sentence}".
+      * PROMPT_PART_1 must ask for an answer of Yes or No only.
+      * PROMPT_PART_2 must give the correct answer format + explain categories.
+      * PROMPT_OBJECTIVE and _SUBJECTIVE must ask for an argument for their
+        respective positions.
+      * JUDGE_PROMPT must contain the lines:
+            Assistant A's View: "{assistant_a}"
+            Assistant B's View: "{assistant_b}"
+    """
+    with open(file) as f:
+        new_prompts = json.load(f)
+    for prompt_name, prompt_body in new_prompts.items():
+        prompts[prompt_name] = prompt_body
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--file_name', type=str, required=True)
@@ -545,6 +589,8 @@ if __name__ == '__main__':
                              ' defined')
     parser.add_argument('--custom_prefix', type=str, default='',
                         help='Set custom output prefix, default empty')
+    parser.add_argument('--custom_prompts', type=str, default='',
+                        help='Custom system prompt from json file.')
     parser.add_argument('--load_debate', type=str, default='')
     parser.add_argument('--load_p1', type=str, default='')
     parser.add_argument('--load_p2', type=str, default='')
@@ -562,11 +608,13 @@ if __name__ == '__main__':
 
     # Unless otherwise defined, generate output name
     # Expects filename shape [dataname]<_processed>[.ext]
-    if args.output_name == '':
+    if not args.output_name:
         args.output_name = (
             f'twit_{args.custom_prefix}{'_' if args.custom_prefix else ''}'
             f'{re.split(r'[_.]', Path(args.file_name).name)[0]}'
             f'_{args.llm_name}')
 
+    if args.custom_prompts:
+        apply_custom_prompts(args.custom_prompts)
     # CHANGED: The script is now started with a single asyncio.run() call
     asyncio.run(main(args))
