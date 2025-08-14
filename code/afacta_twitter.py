@@ -472,8 +472,6 @@ async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences):
 
 # CHANGED: Made the main function async
 async def main(args):
-    print(SYSTEM_PROMPT)
-    quit()
     P1_VERIFIABILITY = prompts['PROMPT_PART_1']
     PART_2_PROMPT = prompts['PROMPT_PART_2']
 
