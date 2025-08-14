@@ -539,29 +539,33 @@ async def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file_name", type=str, default="")
-    parser.add_argument("--output_name", type=str, default="")
-    parser.add_argument("--load_debate", type=str, default="")
-    parser.add_argument("--load_p1", type=str, default="")
-    parser.add_argument("--load_p2", type=str, default="")
-    parser.add_argument("--load_p3", type=str, default="")
-    parser.add_argument("--llm_name", type=str,
-                        default="llama3.1:8b")
-    parser.add_argument("--skip_p1", action="store_true", default=False)
-    parser.add_argument("--skip_p2", action="store_true", default=False)
-    parser.add_argument("--skip_p3", action="store_true", default=False)
-    parser.add_argument("--sample", type=int, default=-1)
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--num_gen", type=int, default=1)
-    parser.add_argument("--sleep", type=int, default=5)
-    parser.add_argument("--num-tokens", type=int, default=512)
+    parser.add_argument('--file_name', type=str, required=True)
+    parser.add_argument('--output_name', type=str, default='',
+                        help='Set custom output name, otherwise automatically'
+                             ' defined')
+    parser.add_argument('--custom_prefix', type=str, default='',
+                        help='Set custom output prefix, default empty')
+    parser.add_argument('--load_debate', type=str, default='')
+    parser.add_argument('--load_p1', type=str, default='')
+    parser.add_argument('--load_p2', type=str, default='')
+    parser.add_argument('--load_p3', type=str, default='')
+    parser.add_argument('--llm_name', type=str, default='llama3.1:8b')
+    parser.add_argument('--skip_p1', action='store_true', default=False)
+    parser.add_argument('--skip_p2', action='store_true', default=False)
+    parser.add_argument('--skip_p3', action='store_true', default=False)
+    parser.add_argument('--sample', type=int, default=-1)
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--num_gen', type=int, default=1)
+    parser.add_argument('--sleep', type=int, default=5)
+    parser.add_argument('--num-tokens', type=int, default=512)
     args = parser.parse_args()
 
     # Unless otherwise defined, generate output name
     # Expects filename shape [dataname]<_processed>[.ext]
     if args.output_name == '':
         args.output_name = (
-            f'twit_{re.split(r'[_.]', Path(args.file_name).name)[0]}'
+            f'twit_{args.custom_prefix}{'_' if args.custom_prefix else ''}'
+            f'{re.split(r'[_.]', Path(args.file_name).name)[0]}'
             f'_{args.llm_name}')
 
     # CHANGED: The script is now started with a single asyncio.run() call
