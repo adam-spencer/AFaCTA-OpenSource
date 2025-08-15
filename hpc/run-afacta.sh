@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=23:59:59
+#SBATCH --time=49:59:59
 #SBATCH --partition=gpu
 #SBATCH --qos=gpu
 #SBATCH --gres=gpu:1
@@ -9,17 +9,46 @@
 #SBATCH --mail-user=aspencer2@sheffield.ac.uk
 #SBATCH --mail-type=ALL
 
-# --- Check for required arguments ---
-if [ -z "$1" ] || [ -z "$2" ]; then
+# --- Initialize variables ---
+FLAG_T=false
+POSITIONAL_ARGS=()
+declare -a PY_ARGS # Optional python args
+
+# --- Argument Parsing Loop ---
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -t)
+      FLAG_T=true
+      shift # Move past the '-t' flag
+      ;;
+    --custom_prefix)
+      PY_ARGS+=("--custom_prefix" "$2") # Add flag and its value to the array
+      shift # Move past the flag
+      shift # Move past the value
+      ;;
+    --custom_prompts)
+      PY_ARGS+=("--custom_prompts" "$2") # Add flag and its value to the array
+      shift # Move past the flag
+      shift # Move past the value
+      ;;
+    *)
+      # Any other argument is treated as a required positional argument
+      POSITIONAL_ARGS+=("$1")
+      shift # Move past the argument
+      ;;
+  esac
+done
+
+# --- Assign positional arguments and check for required ones ---
+MODEL_NAME="${POSITIONAL_ARGS[0]}"
+FILE_PATH="${POSITIONAL_ARGS[1]}"
+
+if [ -z "$MODEL_NAME" ] || [ -z "$FILE_PATH" ]; then
     echo "Error: Missing required arguments."
-    echo "Usage: sbatch $0 <model_name> <file_path> [-t]"
+    echo "Usage: sbatch $0 <model_name> <file_path> [-t] [--custom_prefix <prefix>] [--custom_prompts <prompts>]"
     exit 1
 fi
 
-# --- Assign arguments to variables ---
-MODEL_NAME="$1"
-FILE_PATH="$2"
-FLAG="$3"  # The optional flag, e.g., -t
 
 # --- Load modules and set environment ---
 module load Anaconda3/2022.05
@@ -55,11 +84,13 @@ echo "Running Python script..."
 echo "Using model: $MODEL_NAME"
 echo "Processing file: $FILE_PATH"
 
-if [ "$FLAG" = "-t" ]; then
+if $FLAG_T; then
     echo "Flag '-t' detected. Running afacta_twitter.py"
     python code/afacta_twitter.py \
         --file_name "$FILE_PATH" \
-        --llm_name "$MODEL_NAME"
+        --llm_name "$MODEL_NAME" \
+        --num-tokens 4096 \
+        "${PY_ARGS[@]}"
 else
     echo "No '-t' flag. Running afacta_multi_step_annotation.py"
     python code/afacta_multi_step_annotation.py \
