@@ -495,7 +495,7 @@ async def main(args):
     llm = ChatOllama(
         model=args.llm_name,
         temperature=temperature,
-        num_predict=512,
+        num_predict=args.num_tokens,
         base_url=f"http://localhost:{ollama_port}"
     )
 
@@ -556,6 +556,8 @@ def apply_custom_prompts(file: str) -> None:
     ====================
       * All non-system prompts should mention "the following <sentence>" and
         contain the line: <sentence>: "{sentence}".
+      * All non-system prompts should contain the line:
+        <context>: "...{context}..."
       * PROMPT_PART_1 must ask for an answer of Yes or No only.
       * PROMPT_PART_2 must give the correct answer format + explain categories.
       * PROMPT_OBJECTIVE and _SUBJECTIVE must ask for an argument for their
