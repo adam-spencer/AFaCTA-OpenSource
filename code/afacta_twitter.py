@@ -608,9 +608,9 @@ if __name__ == '__main__':
     # Expects filename shape [dataname]<_processed>[.ext]
     if not args.output_name:
         args.output_name = (
-            f'twit_{args.custom_prefix}{'_' if args.custom_prefix else ''}'
             f'{re.split(r'[_.]', Path(args.file_name).name)[0]}'
-            f'_{args.llm_name}')
+            f'_twit-{args.custom_prefix}{'-' if args.custom_prefix else ''}'
+            f'{args.llm_name}')
 
     if args.custom_prompts:
         apply_custom_prompts(args.custom_prompts)
