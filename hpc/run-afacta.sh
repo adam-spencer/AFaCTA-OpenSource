@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=49:59:59
+#SBATCH --time=12:59:59
 #SBATCH --partition=gpu
 #SBATCH --qos=gpu
 #SBATCH --gres=gpu:1
@@ -95,7 +95,9 @@ else
     echo "No '-t' flag. Running afacta_multi_step_annotation.py"
     python code/afacta_multi_step_annotation.py \
         --file_name "$FILE_PATH" \
-        --llm_name "$MODEL_NAME"
+        --llm_name "$MODEL_NAME" \
+        --num-tokens 4096 \
+        "${PY_ARGS[@]}"
 fi
 
 # --- Stop Ollama Server ---
