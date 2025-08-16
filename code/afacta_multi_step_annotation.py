@@ -1,6 +1,10 @@
+"""
+afacta_multi_step_annotation.py
+
+Perform AFaCTA multi-step annotation according to original specification.
+"""
 import argparse
 import asyncio
-from collections import Counter
 import json
 from langchain_ollama.chat_models import ChatOllama
 from langchain.schema import (
@@ -13,12 +17,19 @@ import random
 import re
 import os
 from pathlib import Path
-# import time
 
 SYSTEM_PROMPT = """You are an AI assistant who helps fact-checkers to identify fact-like information in statements.
 """
 
-PROMPT_PART_2_0905 = """Statements in political speech are usually based on facts to draw reasonable conclusions.
+PROMPT_PART_1 = """Given the <context> of the following <sentence> from a political speech, does it contain any objective information?
+
+<context>: "...{context}..."
+<sentence>: "{sentence}"
+
+Answer with Yes or No only.
+"""
+
+PROMPT_PART_2 = """Statements in political speech are usually based on facts to draw reasonable conclusions.
 
 Categories of fact:
 C1. Mentioning somebody (including the speaker) did or is doing something specific and objective.
@@ -45,14 +56,6 @@ Format your answer in JSON with the following keys in order:
 }}
 """
 
-PROMPT_PART_1_VERIFIABILITY = """Given the <context> of the following <sentence> from a political speech, does it contain any objective information?
-
-<context>: "...{context}..."
-<sentence>: "{sentence}"
-
-Answer with Yes or No only.
-"""
-
 PROMPT_OBJECTIVE = """Concisely argue that the following <sentence> from a political speech does contain some objective information.
 
 Context of <sentence> in the speech: "...{context}..."
@@ -77,6 +80,15 @@ Assistant B's View: "{assistant_b}"
 
 Based on the above, does <sentence> contain any objectively verifiable information? Which perspective do you align with more closely?
 Please reply with "Lean towards A", or "Lean towards B" only."""
+
+prompts = {
+    'SYSTEM_PROMPT': SYSTEM_PROMPT,
+    'PROMPT_PART_2': PROMPT_PART_2,
+    'PROMPT_PART_1': PROMPT_PART_1,
+    'PROMPT_OBJECTIVE': PROMPT_OBJECTIVE,
+    'PROMPT_SUBJECTIVE': PROMPT_SUBJECTIVE,
+    'JUDGE_PROMPT': JUDGE_PROMPT
+}
 
 
 def judge_vote(answer_lists):
@@ -252,40 +264,13 @@ def lean_to_answer(answer, first):
             return "Not defined: " + answer
 
 
-# TODO delete this block?
-# def compute_likelihood(to_label, golden):
-#     if to_label.endswith('xlsx'):
-#         df_to_eval = pd.read_excel(to_label)
-#     else:
-#         df_to_eval = pd.read_csv(to_label, encoding='utf-8')
-#     if golden.endswith('xlsx'):
-#         df_golden = pd.read_excel(golden)
-#     else:
-#         df_golden = pd.read_csv(golden)
-#
-#     p1 = df_to_eval['veri_aggregated'].apply(
-#         lambda x: 1 if "yes" in x.lower() else 0).values
-#     p2 = df_to_eval['p2_aggregated'].apply(lambda x: 1 if x else 0).values
-#     p3_1 = df_to_eval['ob_aggregated'].apply(
-#         lambda x: 1 if "objective" in x.lower() else 0).values
-#     p3_2 = df_to_eval['sub_aggregated'].apply(
-#         lambda x: 1 if "objective" in x.lower() else 0).values
-#
-#     df_to_eval['likely'] = p1 + p2 + p3_1 + p3_2
-#     df_to_eval['likely_2'] = p1 + p2 + ((p3_1 + p3_2) > 0).astype(int)
-#     df_to_eval['likely_1'] = p1 + p2 + 0.5 * p3_1 + 0.5 * p3_2
-#     df_to_eval['GOLD'] = df_golden['VERIFIABILITY_GOLDEN']
-#
-#     df_to_eval.to_excel(to_label.replace('.csv', '.xlsx'), index=False)
-
-
 # CHANGED: Made the function async
 async def debate(args, llm, sentences, contexts):
     if args.load_debate == "":
         objective_prompts = [
             [
-                SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=PROMPT_OBJECTIVE.format(
+                SystemMessage(content=prompts['SYSTEM_PROMPT']),
+                HumanMessage(content=prompts['PROMPT_OBJECTIVE'].format(
                     sentence=s, context=c))
             ]
             for s, c in zip(sentences, contexts)
@@ -296,8 +281,8 @@ async def debate(args, llm, sentences, contexts):
 
         subjective_prompts = [
             [
-                SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=PROMPT_SUBJECTIVE.format(
+                SystemMessage(content=prompts['SYSTEM_PROMPT']),
+                HumanMessage(content=prompts['PROMPT_SUBJECTIVE'].format(
                     sentence=s, context=c))
             ]
             for s, c in zip(sentences, contexts)
@@ -322,10 +307,10 @@ async def debate(args, llm, sentences, contexts):
     await asyncio.sleep(args.sleep)
     df_debate_results = df_debate
 
-    judge_prompt = JUDGE_PROMPT
+    judge_prompt = prompts['JUDGE_PROMPT']
     objective_first_prompts = [
         [
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=prompts['SYSTEM_PROMPT']),
             HumanMessage(content=judge_prompt.format(
                 sentence=s, context=c, assistant_a=ob,
                 assistant_b=sub))
@@ -347,7 +332,7 @@ async def debate(args, llm, sentences, contexts):
 
     subjective_first_prompts = [
         [
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=prompts['SYSTEM_PROMPT']),
             HumanMessage(content=judge_prompt.format(
                 sentence=s, context=c, assistant_a=sub,
                 assistant_b=ob))
@@ -374,7 +359,7 @@ async def debate(args, llm, sentences, contexts):
 async def opinion(args, llm, prompt, sentences):
     fact_opinion_prompts = [
         [
-            SystemMessage(content=SYSTEM_PROMPT),
+            SystemMessage(content=prompts['SYSTEM_PROMPT']),
             HumanMessage(content=prompt.format(sentence=s))
         ]
         for s in sentences
@@ -473,8 +458,8 @@ async def part_2(args, llm, prompt, p2_keys, verifiable_key, sentences,
 
 # CHANGED: Made the main function async
 async def main(args):
-    P1_VERIFIABILITY = PROMPT_PART_1_VERIFIABILITY
-    PART_2_PROMPT = PROMPT_PART_2_0905
+    P1_VERIFIABILITY = prompts['PROMPT_PART_1']
+    PART_2_PROMPT = prompts['PROMPT_PART_2']
 
     PART2_KEYS = ["ANALYSIS", "FACT_PART",
                   "VERIFIABLE_REASON", "VERIFIABILITY", "CATEGORY"]
@@ -554,10 +539,47 @@ async def main(args):
     # compute_likelihood(args.output_name + '_' + str(args.num_gen) + '.csv', args.file_name)
 
 
+def apply_custom_prompts(file: str) -> None:
+    """
+    Replace prompts with those from a given JSON file.
+
+    Expects a file with format like like:
+    {
+        "SYSTEM_PROMPT": "This is the system prompt...",
+        "PROMPT_PART_2": "This is the part 2 prompt...",
+        ...
+    }
+
+    Prompts that don't feature in the JSON file will remain unchanged.
+
+    Prompting Guidelines:
+    ====================
+      * All non-system prompts should mention "the following <sentence>" and
+        contain the line: <sentence>: "{sentence}".
+      * PROMPT_PART_1 must ask for an answer of Yes or No only.
+      * PROMPT_PART_2 must give the correct answer format + explain categories.
+      * PROMPT_OBJECTIVE and _SUBJECTIVE must ask for an argument for their
+        respective positions.
+      * JUDGE_PROMPT must contain the lines:
+            Assistant A's View: "{assistant_a}"
+            Assistant B's View: "{assistant_b}"
+    """
+    with open(file) as f:
+        new_prompts = json.load(f)
+    for prompt_name, prompt_body in new_prompts.items():
+        prompts[prompt_name] = prompt_body
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--file_name", type=str, default="")
-    parser.add_argument("--output_name", type=str, default="")
+    parser.add_argument('--output_name', type=str, default='',
+                        help='Set custom output name, otherwise automatically'
+                             ' defined')
+    parser.add_argument('--custom_prefix', type=str, default='',
+                        help='Set custom output prefix, default empty')
+    parser.add_argument('--custom_prompts', type=str, default='',
+                        help='Custom system prompt from json file.')
     parser.add_argument("--load_debate", type=str, default="")
     parser.add_argument("--load_p1", type=str, default="")
     parser.add_argument("--load_p2", type=str, default="")
@@ -572,14 +594,18 @@ if __name__ == '__main__':
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num_gen", type=int, default=1)
     parser.add_argument("--sleep", type=int, default=5)
+    parser.add_argument('--num-tokens', type=int, default=512)
     args = parser.parse_args()
 
     # Unless otherwise defined, generate output name
     # Expects filename shape [dataname]<_processed>[.ext]
-    if args.output_name == '':
+    if not args.output_name:
         args.output_name = (
+            f'{args.custom_prefix}{'_' if args.custom_prefix else ''}'
             f'{re.split(r'[_.]', Path(args.file_name).name)[0]}'
             f'_{args.llm_name}')
 
+    if args.custom_prompts:
+        apply_custom_prompts(args.custom_prompts)
     # CHANGED: The script is now started with a single asyncio.run() call
     asyncio.run(main(args))
