@@ -34,7 +34,7 @@ Answer with Yes or No only.
 PROMPT_PART_2 = """Statements in Tweets are usually based on facts to draw reasonable conclusions.
 
 Categories of fact:
-C1. Mentioning somebody (including the speaker) did or is doing something specific and objective.
+C1. Mentioning somebody (including the author of the tweet) did or is doing something specific and objective.
 C2. Quoting quantities, statistics, and data.
 C3. Claiming a correlation or causation.
 C4. Assertion of existing laws or rules of operation.
