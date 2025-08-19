@@ -237,14 +237,6 @@ if __name__ == '__main__':
     parser.add_argument('filename', help='Results file to compute scores for')
     parser.add_argument('--save-to', '-s',
                         help='Location to save results to (optional)')
-    # parser.add_argument("--seed", type=int, default=42)
-    # parser.add_argument("--num_answer", type=int, default=0)
-    # parser.add_argument("--model", type=str, default='G3')
     args = parser.parse_args()
     df = load_file(args.filename)
-    # if args.num_answer == 0:
-    # main(df)
-    # else:
-    #     # TODO remove or change confusion function
-    #     confusion(args.num_answer, args.model, args.data)
     main(df, args.save_to)
