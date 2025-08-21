@@ -1,0 +1,7 @@
+data_name,n_statements,mean_gold_label,avg_statement_length
+CT2022-1B,4542,0.637,234.3
+nlp4if_english,1340,0.672,222.0
+Twitter,9981,0.874,172.3
+CT2023-1B,16876,0.24,97.6
+dutta_english,1612,0.242,199.1
+clef_afacta,140,0.814,225.1
