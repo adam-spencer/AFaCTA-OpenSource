@@ -87,6 +87,12 @@ def metrics_for_label(labels, gold, scores_dict, prefix=''):
         scores_dict[f'{prefix}macro_f1'] = (
             (f1_score(gold, label, average='macro') / len(labels)
              ) + scores_dict.get(f'{prefix}macro_f1', 0))
+        scores_dict[f'{prefix}macro_recall'] = (
+            (recall_score(gold, label, average='macro') / len(labels)
+             ) + scores_dict.get(f'{prefix}recall_pos', 0))
+        scores_dict[f'{prefix}macro_precision'] = (
+            (precision_score(gold, label, average='macro') / len(labels)
+             ) + scores_dict.get(f'{prefix}precision_pos', 0))
 
     print(f'{prefix.upper().lstrip('-')} Accuracy score:',
           scores_dict[f'{prefix}acc'])
@@ -104,9 +110,13 @@ def metrics_for_label(labels, gold, scores_dict, prefix=''):
           scores_dict[f'{prefix}f1_neg'])
     print(f'{prefix.upper().lstrip('-')} Macro F1 Score: ',
           scores_dict[f'{prefix}macro_f1'])
+    print(f'{prefix.upper().lstrip('-')} Macro Recall Score: ',
+          scores_dict[f'{prefix}macro_recall'])
+    print(f'{prefix.upper().lstrip('-')} Macro Precision Score: ',
+          scores_dict[f'{prefix}macro_precision'])
 
 
-def main(df, save_to):
+def main(df, save_to, verbose):
     model_names = [x[:-3] for x in df.columns if x.endswith('-s1')]
     if 'zephyr' in df and 'llama' in df:
         model_names.extend(['zephyr', 'llama'])
@@ -176,25 +186,24 @@ def main(df, save_to):
 
         # S3 Results ----------------------------------------------------------
         print("S3 label")
-        if compute_kappa:
-            scores_dict['s3-kappa'] = (
-                (cohen_kappa_score(
-                    sub_df['label_1'],
-                    mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
-                ) + cohen_kappa_score(
-                    sub_df['label_1'],
-                    mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
-                ) / 2
-            ) + (
-                (cohen_kappa_score(
-                    sub_df['label_2'],
-                    mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
-                ) + cohen_kappa_score(
-                    sub_df['label_2'],
-                    mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
-                ) / 2
+        scores_dict['s3-kappa'] = (
+            (cohen_kappa_score(
+                sub_df['label_1'],
+                mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
+            ) + cohen_kappa_score(
+                sub_df['label_1'],
+                mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
             ) / 2
-            print('S3- Kappa score', scores_dict['s3-kappa'])
+        ) + (
+            (cohen_kappa_score(
+                sub_df['label_2'],
+                mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
+            ) + cohen_kappa_score(
+                sub_df['label_2'],
+                mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
+            ) / 2
+        ) / 2
+        print('S3- Kappa score', scores_dict['s3-kappa'])
 
         s3_labels = [
             mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective'),
@@ -228,6 +237,9 @@ def main(df, save_to):
 
     if save_to:
         out_df = pd.DataFrame(scores_list)
+        if not verbose:
+            out_df = out_df.get(
+                ['model', 'macro_f1', 'macro_precision', 'macro_recall'])
         out_df.to_csv(save_to, index=False)
         print(f'Saved to {save_to}')
 
@@ -237,6 +249,10 @@ if __name__ == '__main__':
     parser.add_argument('filename', help='Results file to compute scores for')
     parser.add_argument('--save-to', '-s',
                         help='Location to save results to (optional)')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='Save verbose results (versus just agg macro'
+                        'scores)')
     args = parser.parse_args()
     df = load_file(args.filename)
-    main(df, args.save_to)
+    verbose = args.verbose
+    main(df, args.save_to, verbose)
