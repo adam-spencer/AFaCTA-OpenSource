@@ -1,0 +1,30 @@
+A verifiable factual claim is a sentence claiming that something is true, and this can be verified using factual, verifiable information such as statistics, specific examples, or personal testimony.
+
+Factual claims include the following:
+
+    Stating a definition;
+    Mentioning quantity in the present or the past;
+    Making a verifiable prediction about the future;
+    Reference to laws, procedures, and rules of operation;
+    References to images or videos (e.g., "This is a video showing a hospital in Spain.'');
+    Statements about correlations or causations. Such correlation and causation needs to be explicit, i.e., sentences like "This is why the beaches haven't closed in Florida. https://t.co/8x2tcQeg21'' is not a claim because it does not say why explicitly, thus it is not verifiable.
+
+Tweets containing personal opinions and preferences are not factual claims.
+
+Note: if a tweet is composed of multiple sentences or clauses, at least one full sentence or clause needs to be a claim in order for the tweet to contain a factual claim. If a claim exist in a sub-sentence or sub-clause then tweet is not considered to have a factual claim. For example, "My new favorite thing is Italian mayors and regional presidents LOSING IT at people violating quarantine'' is not a claim, however, it is an opinion. Moreover, if we consider "Italian mayors and regional presidents LOSING IT at people violating quarantine'' it would be a claim. In addition, when answering this question, annotator should not open the tweet URL.
+
+Labels:
+
+    YES: if it contains a verifiable factual claim.
+    NO: if it does not contain any verifiable factual claim.
+    Don't know or can't not judge: the content of the tweet does not have enough information to make a judgment. It is recommended to categorize the tweet using this label when the content of the tweet is not understandable at all. For example, it uses a language (i.e., non-English) or references that it is difficult to understand.
+
+Examples:
+
+    Tweet: Please don't take hydroxychloroquine (Plaquenil) plus Azithromycin for #COVID19 UNLESS your doctor prescribes it. Both drugs affect the QT interval of your heart and can lead to arrhythmias and sudden death, especially if you are taking other meds or have a heart condition.
+    Label: YES
+    Explanation: There is a claim in the text.
+    Tweet: Saw this on Facebook today and it’s a must read for all those idiots clearing the shelves #coronavirus #toiletpapercrisis #auspol
+    Label: NO
+    Explanation: There is no claim in the text.
+
