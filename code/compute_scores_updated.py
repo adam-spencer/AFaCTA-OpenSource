@@ -78,12 +78,12 @@ def metrics_for_label(labels, gold, scores_dict, prefix=''):
         scores_dict[f'{prefix}precision_neg'] = (
             (precision_score(gold, label, pos_label=0) / len(labels)
              ) + scores_dict.get(f'{prefix}precision_neg', 0))
-        scores_dict[f'{prefix}f1_pos'] = (
+        scores_dict[f'{prefix}f1_claim'] = (
             (f1_score(gold, label) / len(labels)
-             ) + scores_dict.get(f'{prefix}f1_pos', 0))
-        scores_dict[f'{prefix}f1_neg'] = (
+             ) + scores_dict.get(f'{prefix}f1_claim', 0))
+        scores_dict[f'{prefix}f1_nonclaim'] = (
             (f1_score(gold, label, pos_label=0) / len(labels)
-             ) + scores_dict.get(f'{prefix}f1_neg', 0))
+             ) + scores_dict.get(f'{prefix}f1_nonclaim', 0))
         scores_dict[f'{prefix}macro_f1'] = (
             (f1_score(gold, label, average='macro') / len(labels)
              ) + scores_dict.get(f'{prefix}macro_f1', 0))
@@ -104,10 +104,10 @@ def metrics_for_label(labels, gold, scores_dict, prefix=''):
           scores_dict[f'{prefix}recall_pos'])
     print(f'{prefix.upper().lstrip('-')} Precision Score (positive): ',
           scores_dict[f'{prefix}precision_pos'])
-    print(f'{prefix.upper().lstrip('-')} F1 Score (positive): ',
-          scores_dict[f'{prefix}f1_pos'])
-    print(f'{prefix.upper().lstrip('-')} F1 Score (negative): ',
-          scores_dict[f'{prefix}f1_neg'])
+    print(f'{prefix.upper().lstrip('-')} Claim F1 Score: ',
+          scores_dict[f'{prefix}f1_claim'])
+    print(f'{prefix.upper().lstrip('-')} Non-Claim F1 Score: ',
+          scores_dict[f'{prefix}f1_nonclaim'])
     print(f'{prefix.upper().lstrip('-')} Macro F1 Score: ',
           scores_dict[f'{prefix}macro_f1'])
     print(f'{prefix.upper().lstrip('-')} Macro Recall Score: ',
@@ -239,7 +239,8 @@ def main(df, save_to, verbose):
         out_df = pd.DataFrame(scores_list)
         if not verbose:
             out_df = out_df.get(
-                ['model', 'macro_f1', 'macro_precision', 'macro_recall'])
+                ['model', 'macro_f1', 'macro_precision', 'macro_recall',
+                 'f1_claim'])
         out_df.to_csv(save_to, index=False)
         print(f'Saved to {save_to}')
 
