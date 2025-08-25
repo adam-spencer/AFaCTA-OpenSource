@@ -1,0 +1,18 @@
+afacta-clef-examples.json
+afacta-clef-specific.json
+CT22-1B-examples.json <- redo this
+ct22-alam-specific.json
+lesa-specific.json
+nlp4if-examples.json
+nlp4if-specifc-examples.json
+nlp4if-specific.json
+policlaim-examples.json
+vanilla.json
+
+need: 
+afacta-clef-specific-examples
+ct22-examples
+alam-examples
+ct22-specific-examples
+alam-specific-examples
+policlaim specific? may be interesting
