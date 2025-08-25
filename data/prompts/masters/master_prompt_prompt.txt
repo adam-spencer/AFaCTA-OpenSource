@@ -1,0 +1,180 @@
+You are assisting the development of an automatic claim detection system.
+The system uses a series of prompts to an LLM and uses majority voting based on the responses to determine whether or not a Tweet contains a factual claim.
+The prompts are not performing optimally across datasets and need tweaking to improve their performance.
+
+Attached are various annotation guidelines for the task of detecting factual claims in Tweets.
+Your task is to generate a set of 'master prompts' which produce an output in the same format as the existing prompts but closely follow the provided guidelines.
+
+Please respond only with the new prompts, formatted in the same way as they are input here.
+
+The four separate annotation guidelines are as follows:
+
+1.```
+A verifiable factual claim is a sentence claiming that something is true, and this can be verified using factual, verifiable information such as statistics, specific examples, or personal testimony.
+
+Factual claims include the following:
+
+    Stating a definition;
+    Mentioning quantity in the present or the past;
+    Making a verifiable prediction about the future;
+    Reference to laws, procedures, and rules of operation;
+    References to images or videos (e.g., "This is a video showing a hospital in Spain.'');
+    Statements about correlations or causations. Such correlation and causation needs to be explicit, i.e., sentences like "This is why the beaches haven't closed in Florida. https://t.co/8x2tcQeg21'' is not a claim because it does not say why explicitly, thus it is not verifiable.
+
+Tweets containing personal opinions and preferences are not factual claims.
+
+Note: if a tweet is composed of multiple sentences or clauses, at least one full sentence or clause needs to be a claim in order for the tweet to contain a factual claim. If a claim exist in a sub-sentence or sub-clause then tweet is not considered to have a factual claim. For example, "My new favorite thing is Italian mayors and regional presidents LOSING IT at people violating quarantine'' is not a claim, however, it is an opinion. Moreover, if we consider "Italian mayors and regional presidents LOSING IT at people violating quarantine'' it would be a claim. In addition, when answering this question, annotator should not open the tweet URL.
+
+Examples:
+
+    Tweet: Please don't take hydroxychloroquine (Plaquenil) plus Azithromycin for #COVID19 UNLESS your doctor prescribes it. Both drugs affect the QT interval of your heart and can lead to arrhythmias and sudden death, especially if you are taking other meds or have a heart condition.
+    Label: YES
+    Explanation: There is a claim in the text.
+    Tweet: Saw this on Facebook today and it’s a must read for all those idiots clearing the shelves #coronavirus #toiletpapercrisis #auspol
+    Label: NO
+    Explanation: There is no claim in the text.
+```
+
+2.```
+A verifiable factual claim is a statement that something is true, and this can be verified using factual, verifiable information such as statistics, specific examples, or personal testimony.
+
+Factual claims could be (a) stating a definition, (b) mentioning a quantity in the present or in the past, (c) making a verifiable prediction about the future, (d) reference laws, procedures, and rules of operation, and (e) reference images or videos (e.g., “This is a video showing a hospital in Spain.”), (f) implying correlation or causation (such correlation/causation needs to be explicit).
+```
+
+3.```
+A factual claim is a statement that explicitly presents some verifiable facts (i.e. provide enough specific information to guide fact checkers in verification).
+Statements with subjective components like opinions can also be factual claims if they explicitly present objectively verifiable facts.
+```
+
+4.```
+# Guidelines for claims
+• Tweets mentioning statistics, dates or numbers.
+Example: [“just 1 case of corona virus in india and people are crazy for masks daily 400 people die in road crashes still no craze for helmetsthinking face safetysaves be it virus or road crashes”]
+
+• Tweets mentioning a personal experience.
+Example: [“i live in seattle i have all symptoms of covid19 and have a history of chronic bronchitis since i work in a physical therapy clinic with many 65 patients and those with chronic illnesses i decided to be responsible and go to get tested this is how that went”]
+
+• Tweets ‘reporting’ something to be true or an instance to have happened or will happen.
+Example: [“breaking boris johnson says he visited kettering hospital shook hands with corona patients but the hospital doesnt have corona cases shaking hands would be dangerous not sure how ill gloss over the fact the pm 1 is a liar a complete fucking idiot but ill find a way x”]
+
+• Tweets containing verified facts also account for a claim, a veracious claim that is. (Note: a fact known by one, may not necessarily be known by another) Example: [“The Chinese CDC has started research and development of a vaccine for the #coronavirus.”] - known fact
+
+• Tweets that negate a claim are also accounted as claims.
+Example: [“disinfectants are not a cure for coronavirus”]
+
+• Tweets that indirectly (subtly) imply that something is true.
+Example 1: [“b52questions 1 why is rudy not under arrest 2 why is harvey not in rikers 3 why is cuccinelli still working 4 has barr quit yet 5 when is flynn being sentenced 6 who trusts pence and mrs miller with messaging about coronavirus 7 are rs happy wtheir guy”] - indirectly implies rudy is not under arrest and harvey is not in rikers
+
+Example 2: [“do rich people know theyll get the virus if poor people cant be tested and diagnoseddo rich people know theyll get the virus if poor people cant be tested and diagnosed”] - indirectly implies rich people will get the virus if poor people can’t be tested
+
+• Claims made in sarcasm or humour.
+Example 1: [“@TheDailyShow Newsflash! #trumpfact If you paint your face #orange you will be #immune to #coronavirus”]
+Example 2: [“RT @ saraellen: If you’ve ever used messers bathroom you’re immune to corona virus.”]
+Example 3: [“corona virus minding its business by avoiding africa and going to other continents”]
+Example 1 and 2 are both examples of claims, even if evidently sarcastic; Example 3 is a humour oriented claim.
+
+• All opinions are not claims. Opinions that have societal implications are considered as claims.
+Example 1: [“@derekgilbert I think the Chinese stole a bio weapon https://t.co/RcF6XUJv4b, sent it to Wuhan China, it got out somehow and they cover it up with a story about it originating at a nearby market. They know how bad the virus is and quarantine entire cities. https://t.co/ZwMqsiWGau”]
+Example 2: [“I think Burger King fries are better than Mc’D’s”]
+Example 1 is an opinion that claims something to have happened, whose veracity will affect a certain section of the society. Hence it will be marked as a claim. Example 2, on the other hand, is a personal belief that majorly impacts only the person making the tweet and is hence marked non-claim.
+
+• Tweet that says something is true and provides an attachment as evidence or to support the statement.
+Example 1: [“RT @Jawn42: If you ate here growing up, you’re immune to the Coronavirus. https://t.co/b9a0hm171b”]
+Example 2: [“RT @TerminalLance: This kills Coronavirus in the system https://t.co/iOFNlkSrUj”]
+* However, if a person says something is provided in the attachment, that will not be a claim.
+Example: [“im stunned by the depth of coronavirus information being released in singapore on this website you can see every known infection case where the person lives and works which hospital they got admitted to and the network topology of carriers all laid out on a timeseries link”]
+
+• A claim can be a sub-part of a question. Example: [“Does the pneumonia shot help protect from developing pneumonia caused by #covid19”] - the claim here being that pneumonia is caused by COVID-19.
+
+
+# Guidelines for ‘non-claims’
+• Hoping that something happens or feeling something is true is not claiming it.
+Example 1: [“World doesn’t end if u don’t give your opinions about corona virus. I’m drinking #nilavembu boiled in hot water and hope it prevents. #COVID-19 #coronapocolypse”]
+Example 2: [“I feel like I’m immune to coronavirus.”]
+
+• Inclusion of words that project doubt over the said statement.
+Example: [“politicalelle Political correctness infecting the #Coronavirus . Let’s change words describing the virus maybe that will cure it.”]
+* Tweets containing doubt-casting words can still, however, contain claims.
+Example: [“Coronavirus may have originated in lab linked to China’s biowarfare program #coronavirus https://t.co/2NSWidMkoa”]
+
+• Urging one to not claim something or to spread misinformation is not a claim.
+Example: [“#Covid19 - Dear all: Stop telling the public that plaquenil/Azithromycine is a cure!!!!! Plz some leadership is needed regarding this matter!”]
+
+• Questioning a possible claim is not a claim.
+Example: [“Do disinfectants really cure Corona?”]
+* However, a tweet containing a question can still comprise a claim.
+Example: [“Would you like to promote a cure that can kill 90% #COVID-19 virus in the body in 3-15 min?”]
+The above tweet claims that there exists a cure that can kill 90% of COVID-19 virus in the body
+
+• Warning someone against a claim is not a claim.
+Example: [“If you think drinking disinfectants will cure #Covid 19 , you deserve death #trump”]
+The above tweet may be hate speech but it does not say something is true or false. Hence it does not fall under the jurisdiction of claims
+```
+
+The six default prompts are as follows:
+
+```
+SYSTEM_PROMPT = '''
+You are an AI assistant who helps fact-checkers to identify fact-like information in statements.
+'''
+
+PROMPT_PART_1 = '''
+Given the following <sentence> from a Tweet, does it contain any objective information?
+
+<sentence>: "{sentence}"
+
+Answer with Yes or No only.
+'''
+
+PROMPT_PART_2 = '''
+Statements in Tweets are usually based on facts to draw reasonable conclusions.
+
+Categories of fact:
+C1. Mentioning somebody (including the author of the tweet) did or is doing something specific and objective.
+C2. Quoting quantities, statistics, and data.
+C3. Claiming a correlation or causation.
+C4. Assertion of existing laws or rules of operation.
+C5. Pledging a specific future plan or making specific predictions about future.
+
+Please first analyze the objective and subjective information that the following <statement> (from a Tweet) covers.
+Then extract the fact that the <statement> is based on.
+Then carefully reason about if the extracted fact is objectively verifiable.
+Finally answer if the fact falls into the above categories (C1 to C5) or not (C0).
+
+<statement>: "{sentence}"
+
+Format your answer in JSON with the following keys in order:
+{{
+"ANALYSIS": "What are the objective and subjective information that <statement> covers?",
+"FACT_PART": "The extracted fact.",
+"VERIFIABLE_REASON": "Detailed reason about the extracted fact's verifiability. Note that a fact lacks important details or can be interpreted differently is not objectively verifiable. Future plans/pledge (C5) that are specific and clear can be verifiable. Citing others' words is verifiable and falls into C1. ",
+"VERIFIABILITY": "A boolean value indicates the verifiability.",
+"CATEGORY": "C1 to C5, or C0."
+}}
+'''
+
+PROMPT_OBJECTIVE = '''
+Concisely argue that the following <sentence> from a Tweet does contain some objective information.
+
+<sentence>: "{sentence}"
+'''
+
+PROMPT_SUBJECTIVE = '''
+Concisely argue that the following <sentence> from a Tweet does not contain any objective information.
+
+<sentence>: "{sentence}"
+'''
+
+JUDGE_PROMPT = '''
+Two AI assistants are debating about whether the following <sentence> (from a Tweet) contains any objectively verifiable information.
+
+<sentence>: "{sentence}"
+
+Assistant A's View: "{assistant_a}"
+
+Assistant B's View: "{assistant_b}"
+
+Based on the above, does <sentence> contain any objectively verifiable information? Which perspective do you align with more closely?
+Please reply with "Lean towards A", or "Lean towards B" only.
+'''
+```
