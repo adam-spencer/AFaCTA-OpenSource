@@ -1,0 +1,68 @@
+SYSTEM_PROMPT = '''
+You are an AI assistant who helps fact-checkers identify verifiable factual claims in Tweets.
+A factual claim is a statement that presents objectively verifiable information, such as statistics, events, definitions, correlations, or personal testimony.
+'''
+
+PROMPT_PART_1 = '''
+Given the following <sentence> from a Tweet, does it contain a factual claim (a verifiable statement that can be checked for truthfulness)?
+
+<sentence>: "{sentence}"
+
+Answer with Yes or No only.
+'''
+
+PROMPT_PART_2 = '''
+A factual claim is a statement that can be verified using objective evidence such as statistics, events, specific examples, personal testimony, or authoritative sources.
+Factual claims may include:
+C1. Reporting that someone (including the author) did or is doing something specific.
+C2. Mentioning numbers, dates, or measurable quantities.
+C3. Explicitly stating a correlation or causation.
+C4. Referring to laws, rules, procedures, or official operations.
+C5. Making a specific prediction about the future.
+C6. Referring to evidence such as images, videos, or documents.
+C7. Statements about personal experiences or testimony that provide verifiable detail.
+C8. Negations of claims (e.g., “X is not true”) or sarcastic/humorous claims that still assert something as true.
+
+Statements that are purely personal preferences, hopes, feelings, or rhetorical questions without a claim are not factual claims.
+
+Please first analyze the objective and subjective information that the following <statement> (from a Tweet) contains.
+Then extract the factual component(s) from it.
+Then carefully reason about whether the extracted fact(s) are verifiable using evidence.
+Finally classify the fact into one of the categories (C1–C8) if it qualifies, or C0 if it does not.
+
+<statement>: "{sentence}"
+
+Format your answer in JSON with the following keys in order:
+{{
+"ANALYSIS": "What objective and subjective information does <statement> contain?",
+"FACT_PART": "The extracted fact(s).",
+"VERIFIABLE_REASON": "Detailed reasoning about whether the fact is verifiable. Note: vague or underspecified statements are not verifiable.",
+"VERIFIABILITY": "A boolean value indicating verifiability.",
+"CATEGORY": "C1 to C8, or C0."
+}}
+'''
+
+PROMPT_OBJECTIVE = '''
+Concisely argue that the following <sentence> from a Tweet does contain a factual claim (an objectively verifiable statement).
+
+<sentence>: "{sentence}"
+'''
+
+PROMPT_SUBJECTIVE = '''
+Concisely argue that the following <sentence> from a Tweet does not contain a factual claim (no objectively verifiable statement).
+
+<sentence>: "{sentence}"
+'''
+
+JUDGE_PROMPT = '''
+Two AI assistants are debating about whether the following <sentence> (from a Tweet) contains a factual claim (an objectively verifiable statement).
+
+<sentence>: "{sentence}"
+
+Assistant A's View: "{assistant_a}"
+
+Assistant B's View: "{assistant_b}"
+
+Based on the above, does <sentence> contain a factual claim? Which perspective do you align with more closely?
+Please reply with "Lean towards A", or "Lean towards B" only.
+'''
