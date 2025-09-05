@@ -48,67 +48,114 @@ Statements with subjective components like opinions can also be factual claims i
 
 4.```
 # Guidelines for claims
-• Tweets mentioning statistics, dates or numbers.
+- Tweets mentioning statistics, dates or numbers.
 Example: [“just 1 case of corona virus in india and people are crazy for masks daily 400 people die in road crashes still no craze for helmetsthinking face safetysaves be it virus or road crashes”]
 
-• Tweets mentioning a personal experience.
+- Tweets mentioning a personal experience.
 Example: [“i live in seattle i have all symptoms of covid19 and have a history of chronic bronchitis since i work in a physical therapy clinic with many 65 patients and those with chronic illnesses i decided to be responsible and go to get tested this is how that went”]
 
-• Tweets ‘reporting’ something to be true or an instance to have happened or will happen.
+- Tweets ‘reporting’ something to be true or an instance to have happened or will happen.
 Example: [“breaking boris johnson says he visited kettering hospital shook hands with corona patients but the hospital doesnt have corona cases shaking hands would be dangerous not sure how ill gloss over the fact the pm 1 is a liar a complete fucking idiot but ill find a way x”]
 
-• Tweets containing verified facts also account for a claim, a veracious claim that is. (Note: a fact known by one, may not necessarily be known by another) Example: [“The Chinese CDC has started research and development of a vaccine for the #coronavirus.”] - known fact
+- Tweets containing verified facts also account for a claim, a veracious claim that is. (Note: a fact known by one, may not necessarily be known by another) Example: [“The Chinese CDC has started research and development of a vaccine for the #coronavirus.”] - known fact
 
-• Tweets that negate a claim are also accounted as claims.
+- Tweets that negate a claim are also accounted as claims.
 Example: [“disinfectants are not a cure for coronavirus”]
 
-• Tweets that indirectly (subtly) imply that something is true.
+- Tweets that indirectly (subtly) imply that something is true.
 Example 1: [“b52questions 1 why is rudy not under arrest 2 why is harvey not in rikers 3 why is cuccinelli still working 4 has barr quit yet 5 when is flynn being sentenced 6 who trusts pence and mrs miller with messaging about coronavirus 7 are rs happy wtheir guy”] - indirectly implies rudy is not under arrest and harvey is not in rikers
 
 Example 2: [“do rich people know theyll get the virus if poor people cant be tested and diagnoseddo rich people know theyll get the virus if poor people cant be tested and diagnosed”] - indirectly implies rich people will get the virus if poor people can’t be tested
 
-• Claims made in sarcasm or humour.
+- Claims made in sarcasm or humour.
 Example 1: [“@TheDailyShow Newsflash! #trumpfact If you paint your face #orange you will be #immune to #coronavirus”]
 Example 2: [“RT @ saraellen: If you’ve ever used messers bathroom you’re immune to corona virus.”]
 Example 3: [“corona virus minding its business by avoiding africa and going to other continents”]
 Example 1 and 2 are both examples of claims, even if evidently sarcastic; Example 3 is a humour oriented claim.
 
-• All opinions are not claims. Opinions that have societal implications are considered as claims.
+- All opinions are not claims. Opinions that have societal implications are considered as claims.
 Example 1: [“@derekgilbert I think the Chinese stole a bio weapon https://t.co/RcF6XUJv4b, sent it to Wuhan China, it got out somehow and they cover it up with a story about it originating at a nearby market. They know how bad the virus is and quarantine entire cities. https://t.co/ZwMqsiWGau”]
 Example 2: [“I think Burger King fries are better than Mc’D’s”]
 Example 1 is an opinion that claims something to have happened, whose veracity will affect a certain section of the society. Hence it will be marked as a claim. Example 2, on the other hand, is a personal belief that majorly impacts only the person making the tweet and is hence marked non-claim.
 
-• Tweet that says something is true and provides an attachment as evidence or to support the statement.
+- Tweet that says something is true and provides an attachment as evidence or to support the statement.
 Example 1: [“RT @Jawn42: If you ate here growing up, you’re immune to the Coronavirus. https://t.co/b9a0hm171b”]
 Example 2: [“RT @TerminalLance: This kills Coronavirus in the system https://t.co/iOFNlkSrUj”]
 * However, if a person says something is provided in the attachment, that will not be a claim.
 Example: [“im stunned by the depth of coronavirus information being released in singapore on this website you can see every known infection case where the person lives and works which hospital they got admitted to and the network topology of carriers all laid out on a timeseries link”]
 
-• A claim can be a sub-part of a question. Example: [“Does the pneumonia shot help protect from developing pneumonia caused by #covid19”] - the claim here being that pneumonia is caused by COVID-19.
+- A claim can be a sub-part of a question. Example: [“Does the pneumonia shot help protect from developing pneumonia caused by #covid19”] - the claim here being that pneumonia is caused by COVID-19.
 
 
 # Guidelines for ‘non-claims’
-• Hoping that something happens or feeling something is true is not claiming it.
+- Hoping that something happens or feeling something is true is not claiming it.
 Example 1: [“World doesn’t end if u don’t give your opinions about corona virus. I’m drinking #nilavembu boiled in hot water and hope it prevents. #COVID-19 #coronapocolypse”]
 Example 2: [“I feel like I’m immune to coronavirus.”]
 
-• Inclusion of words that project doubt over the said statement.
+- Inclusion of words that project doubt over the said statement.
 Example: [“politicalelle Political correctness infecting the #Coronavirus . Let’s change words describing the virus maybe that will cure it.”]
 * Tweets containing doubt-casting words can still, however, contain claims.
 Example: [“Coronavirus may have originated in lab linked to China’s biowarfare program #coronavirus https://t.co/2NSWidMkoa”]
 
-• Urging one to not claim something or to spread misinformation is not a claim.
+- Urging one to not claim something or to spread misinformation is not a claim.
 Example: [“#Covid19 - Dear all: Stop telling the public that plaquenil/Azithromycine is a cure!!!!! Plz some leadership is needed regarding this matter!”]
 
-• Questioning a possible claim is not a claim.
+- Questioning a possible claim is not a claim.
 Example: [“Do disinfectants really cure Corona?”]
 * However, a tweet containing a question can still comprise a claim.
 Example: [“Would you like to promote a cure that can kill 90% #COVID-19 virus in the body in 3-15 min?”]
 The above tweet claims that there exists a cure that can kill 90% of COVID-19 virus in the body
 
-• Warning someone against a claim is not a claim.
+- Warning someone against a claim is not a claim.
 Example: [“If you think drinking disinfectants will cure #Covid 19 , you deserve death #trump”]
 The above tweet may be hate speech but it does not say something is true or false. Hence it does not fall under the jurisdiction of claims
+```
+
+5.```
+# Verifiability
+A claim must express information that the annotator thinks to be verifiable, i.e, the truthfulness of the information can be checked from arbitrary external information sources.
+For example, let us consider the following tweet:
+
+"@sarkar_swati But #Bengal #Media has always been anti #Narendermodi. Not something started post 2021 election results. In fact if someone interested to check how Pet media actually works they can just check Telegraph and ABP group. For them #TMC is beyond any question"
+
+The information expressed in this tweet mostly contains the author’s subjective opinion regarding media. It is not possible to objectively verify whether Bengal Media has always been against Narendra Modi.
+ Additionally, statements that express informations of type X (some event) happened at Y(some place or time), X(some person or organization) said Y(some statement), X(some quantifiable entity) has a value Y(some numeric value), X(some person or organization) has done Y(some act), etc., can be readily identified as verifiable.
+
+# Authorship
+A piece of text may contain nested information, e.g, X said that Y happened. In such cases, we need to identify that whether Y happened or not is not the subject of the claim here; the claim is X said so.
+For example:
+
+"#Delhi riot case: Court slams advocate Mehmood Pracha’s claim that only particular community was targeted in the riot."
+
+In this tweet, the author claims that the Court has slammed Mehmood Pracha’s claim and therefore the statement needs to be identified as a factual claim. A subsequent verification module would need to check whether or not Mehmood Pracha claimed so and whether or not some Court slammed it.
+
+# Types of factual claims
+Following the motivations presented Section 1, we define a categorization scheme for the factual claims annotated using the previously defined method.
+To reiterate, we design this categorization based on what type of facts are represented in a claim so that the subsequent verification module can employ suitable methods.
+
+We define the following three types:
+
+## Simple claims.
+The statement contains a single factual claim stated directly by the author of the tweet.
+For example:
+
+"[BJP4India won 77 seats in #BengalElection2021]1, [BJP inducted some key faces from them in #CabinetExpansion2021]2 https://t.co/QuwVgNSDFg"
+
+Here, a singularity/multiplicity of a fact should be defined from the perspective of the verification agent: how many questions are being answered with the candidate fact.
+
+## Composite claims
+As opposed to simple claims, a composite claim is a statement that contains multiple facts and can not be broken down to simple claims without violating the definition of a factual claim.
+In the below example:
+
+"MamataBanerjee recently implemented LakhhiBhandar scheme that was part of her #BengalElection2021 manifesto whr women r given Rs 500 to Rs1000 in #Bengal."
+
+The whole tweet contains a factual claim where multiple facts are stated: MamataBanerjee recently implemented LakhhiBhandar scheme, This scheme was part of her BengalElection2021 manifesto, and in this scheme women are given Rs 500 to Rs1000 in Bengal. However, we cannot select any subspan that would identify any of these individual facts. This is an example of a composite claim.
+
+## Quotation claim
+Very often, the author identifies some other person/organization as a source of information. We categorize such claims as Quotations. In terms of verification, the target is to check whether the mentioned entity is actually the source of the information or not.
+Following is an example of such a claim:
+
+"In an interview with @AajTakBangla, #Bengal BJP can- didate Mumtaz Ali said: “Our party leadership did not even respond to calls. On the day of the scrutiny, I went alone. Even my election agent was absent. ” https://t.co/7ZuSBL0tjB"
 ```
 
 The six default prompts are as follows:
