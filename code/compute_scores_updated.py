@@ -87,6 +87,9 @@ def metrics_for_label(labels, gold, scores_dict, prefix=''):
         scores_dict[f'{prefix}macro_f1'] = (
             (f1_score(gold, label, average='macro') / len(labels)
              ) + scores_dict.get(f'{prefix}macro_f1', 0))
+        scores_dict[f'{prefix}weighted_f1'] = (
+            (f1_score(gold, label, average='weighted') / len(labels)
+             ) + scores_dict.get(f'{prefix}weighted_f1', 0))
         scores_dict[f'{prefix}macro_recall'] = (
             (recall_score(gold, label, average='macro') / len(labels)
              ) + scores_dict.get(f'{prefix}recall_pos', 0))
@@ -149,6 +152,9 @@ def main(df, save_to, verbose):
                     ) + cohen_kappa_score(
                         df['label_2'], df[f'{model_name}_label']
                     ) / 2))
+            print('Macro-F1',
+                  f1_score(df['Golden'],
+                           df[f'{model_name}_label'], average='macro'))
             continue
 
         sub_df = df
@@ -186,24 +192,25 @@ def main(df, save_to, verbose):
 
         # S3 Results ----------------------------------------------------------
         print("S3 label")
-        scores_dict['s3-kappa'] = (
-            (cohen_kappa_score(
-                sub_df['label_1'],
-                mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
-            ) + cohen_kappa_score(
-                sub_df['label_1'],
-                mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
+        if compute_kappa:
+            scores_dict['s3-kappa'] = (
+                (cohen_kappa_score(
+                    sub_df['label_1'],
+                    mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
+                ) + cohen_kappa_score(
+                    sub_df['label_1'],
+                    mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
+                ) / 2
+            ) + (
+                (cohen_kappa_score(
+                    sub_df['label_2'],
+                    mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
+                ) + cohen_kappa_score(
+                    sub_df['label_2'],
+                    mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
+                ) / 2
             ) / 2
-        ) + (
-            (cohen_kappa_score(
-                sub_df['label_2'],
-                mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
-            ) + cohen_kappa_score(
-                sub_df['label_2'],
-                mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
-            ) / 2
-        ) / 2
-        print('S3- Kappa score', scores_dict['s3-kappa'])
+            print('S3- Kappa score', scores_dict['s3-kappa'])
 
         s3_labels = [
             mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective'),
@@ -238,9 +245,11 @@ def main(df, save_to, verbose):
     if save_to:
         out_df = pd.DataFrame(scores_list)
         if not verbose:
-            out_df = out_df.get(
-                ['model', 'macro_f1', 'macro_precision', 'macro_recall',
-                 'f1_claim'])
+            to_get = ['model', 'macro_f1', 'macro_precision', 'macro_recall',
+                      'f1_claim', 'acc', 'weighted_f1']
+            if compute_kappa:
+                to_get.append('agg-human-kappa')
+            out_df = out_df.get(to_get)
         out_df.to_csv(save_to, index=False)
         print(f'Saved to {save_to}')
 
