@@ -1,43 +1,64 @@
-import pandas as pd
 import argparse
-import random
 import numpy as np
-from sklearn.metrics import cohen_kappa_score, accuracy_score
+import pandas as pd
+import random
+from sklearn.metrics import (
+    cohen_kappa_score,
+    accuracy_score,
+    recall_score,
+    precision_score,
+    f1_score)
+from process_results import load_file
+import re
 
 random.seed(42)
 
 
-def compute_likelihood(df_to_eval):
-    p1 = df_to_eval['gpt-4-s1'].apply(lambda x: 1 if "yes" in x.lower() else 0).values
-    p2 = []
-    for i, c in zip(df_to_eval['gpt-4-s2'], df_to_eval['gpt-4-category']):
-        if i or 'C0' not in c:
-            p2.append(1)
-        else:
-            p2.append(0)
-    p2 = np.array(p2)
-    p3_1 = df_to_eval['gpt-4-s3-1'].apply(lambda x: 1 if "objective" in x.lower() else 0).values
-    p3_2 = df_to_eval['gpt-4-s3-2'].apply(lambda x: 1 if "objective" in x.lower() else 0).values
+def compute_likelihood(df_to_eval, model_names):
+    for model in model_names:
+        # Skip incorrectly formatted cols (original llama and zephyr)
+        if f'{model}-s1' not in df_to_eval.columns:
+            continue
+        df_to_eval[f'{model}-s1'].fillna('No')
+        df_to_eval[f'{model}-s2'].fillna(False)
+        df_to_eval[f'{model}-s3-1'].fillna('Subjective')
+        df_to_eval[f'{model}-s3-2'].fillna('Subjective')
+        p1 = df_to_eval[f'{model}-s1'].apply(
+            lambda x: 1 if pd.notna(x) and "yes" in remove_thinking_tokens(x)
+            else 0).values
+        p2 = []
+        for i, c in zip(df_to_eval[f'{model}-s2'],
+                        df_to_eval[f'{model}-category']):
+            if i or (type(c) is not float and 'C0' not in c):
+                # print(type(i))
+                p2.append(1)
+            else:
+                p2.append(0)
+        p2 = np.array(p2)
+        p3_1 = df_to_eval[f'{model}-s3-1'].apply(
+            lambda x: 1 if pd.notna(
+                x) and "objective" in remove_thinking_tokens(x) else 0
+        ).values
+        p3_2 = df_to_eval[f'{model}-s3-2'].apply(
+            lambda x: 1 if pd.notna(
+                x) and "objective" in remove_thinking_tokens(x) else 0
+        ).values
 
-    df_to_eval['gpt-4'] = p1 + p2 + 0.5 * p3_1 + 0.5 * p3_2
-
-    p1 = df_to_eval['gpt-3.5-s1'].apply(lambda x: 1 if "yes" in x.lower() else 0).values
-    p2 = []
-    for i, c in zip(df_to_eval['gpt-3.5-s2'], df_to_eval['gpt-3.5-category']):
-        if i or 'C0' not in c:
-            p2.append(1)
-        else:
-            p2.append(0)
-    p2 = np.array(p2)
-    p3_1 = df_to_eval['gpt-3.5-s3-1'].apply(lambda x: 1 if "objective" in x.lower() else 0).values
-    p3_2 = df_to_eval['gpt-3.5-s3-2'].apply(lambda x: 1 if "objective" in x.lower() else 0).values
-
-    df_to_eval['gpt-3.5'] = p1 + p2 + 0.5 * p3_1 + 0.5 * p3_2
+        df_to_eval[model] = p1 + p2 + 0.5 * p3_1 + 0.5 * p3_2
     return df_to_eval
 
 
-def mapping(l, neg):
-    return [0 if i == neg or str(neg).lower() in str(i).lower() else 1 for i in l]
+def remove_thinking_tokens(text: str):
+    """Remove <think(ing)> block from model response."""
+    pattern = r'<think(ing)?>(.*?)</think(ing)?>'
+    cleaned_text = re.sub(pattern, '', text, flags=re.DOTALL).strip()
+    return cleaned_text.lower()
+
+
+def mapping(col, neg):
+    return [
+        0 if i == neg or str(neg).lower() in str(i).lower() else 1
+        for i in col]
 
 
 def mapping_two(l1, l2, neg):
@@ -52,161 +73,229 @@ def mapping_two(l1, l2, neg):
     return ret
 
 
-def main(df):
-    df = compute_likelihood(df)
+def metrics_for_label(labels, gold, scores_dict, prefix=''):
+    # Calculate average metric (deals with S3 labels)
+    for label in labels:
+        scores_dict[f'{prefix}acc'] = (accuracy_score(
+            gold, label) / len(labels)) + scores_dict.get(f'{prefix}acc', 0)
+        scores_dict[f'{prefix}recall_pos'] = (
+            (recall_score(gold, label) / len(labels)
+             ) + scores_dict.get(f'{prefix}recall_pos', 0))
+        scores_dict[f'{prefix}precision_pos'] = (
+            (precision_score(gold, label) / len(labels)
+             ) + scores_dict.get(f'{prefix}precision_pos', 0))
+        scores_dict[f'{prefix}recall_neg'] = (
+            (recall_score(gold, label, pos_label=0) / len(labels)
+             ) + scores_dict.get(f'{prefix}recall_neg', 0))
+        scores_dict[f'{prefix}precision_neg'] = (
+            (precision_score(gold, label, pos_label=0) / len(labels)
+             ) + scores_dict.get(f'{prefix}precision_neg', 0))
+        scores_dict[f'{prefix}f1_claim'] = (
+            (f1_score(gold, label) / len(labels)
+             ) + scores_dict.get(f'{prefix}f1_claim', 0))
+        scores_dict[f'{prefix}f1_nonclaim'] = (
+            (f1_score(gold, label, pos_label=0) / len(labels)
+             ) + scores_dict.get(f'{prefix}f1_nonclaim', 0))
+        scores_dict[f'{prefix}macro_f1'] = (
+            (f1_score(gold, label, average='macro') / len(labels)
+             ) + scores_dict.get(f'{prefix}macro_f1', 0))
+        scores_dict[f'{prefix}weighted_f1'] = (
+            (f1_score(gold, label, average='weighted') / len(labels)
+             ) + scores_dict.get(f'{prefix}weighted_f1', 0))
+        scores_dict[f'{prefix}macro_recall'] = (
+            (recall_score(gold, label, average='macro') / len(labels)
+             ) + scores_dict.get(f'{prefix}recall_pos', 0))
+        scores_dict[f'{prefix}macro_precision'] = (
+            (precision_score(gold, label, average='macro') / len(labels)
+             ) + scores_dict.get(f'{prefix}precision_pos', 0))
 
-    df['gpt35_label'] = df['gpt-3.5'].apply(lambda x: 0 if x <= 1.5 else 1)
-    df['gpt4_label'] = df['gpt-4'].apply(lambda x: 0 if x <= 1.5 else 1)
-    df['zephyr_label'] = df['zephyr'].apply(lambda x: 0 if x <= 1.5 else 1)
-    df['llama_label'] = df['llama'].apply(lambda x: 0 if x <= 1.5 else 1)
-
-    print(np.mean(df['Golden'])) # 81.43, 63.85
-    print("===zephyr===")
-    print('Acc', accuracy_score(df['Golden'], df['zephyr_label']))
-    print('kappa', (cohen_kappa_score(df['label_1'], df['zephyr_label']) + cohen_kappa_score(df['label_2'], df['zephyr_label']) / 2))
-
-    print("===llama===")
-    print('Acc', accuracy_score(df['Golden'], df['llama_label']))
-    print('kappa', (cohen_kappa_score(df['label_1'], df['llama_label']) + cohen_kappa_score(df['label_2'],
-                                                                                             df['llama_label']) / 2))
-
-    print("===GPT-4===")
-    #sub_df = df.loc[(df['gpt-4'] < 1) | (df['gpt-4'] > 1.5), :]
-    sub_df = df
-    print("S1 label")
-    print('kappa score', (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-4-s1'], neg='No')) +
-           cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-4-s1'], neg='No'))) / 2)
-    print('acc score: ', accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-4-s1'], neg='No')))
-    print("S2 label")
-    print('kappa score', (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-4-s2'], neg=False)) +
-           cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-4-s2'], neg=False))) / 2)
-    print('acc score: ', accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-4-s2'], neg=False)))
-    print("S3 label")
-    print('kappa score', (
-        (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-4-s3-1'], neg='Subjective'))
-         + cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-4-s3-2'], neg='Subjective'))) / 2
-    ) + (
-        (cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-4-s3-1'], neg='Subjective'))
-         + cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-4-s3-2'], neg='Subjective'))) / 2
-    ) / 2)
-    print('acc score', (accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-4-s3-1'], neg='Subjective'))
-                        + accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-4-s3-2'], neg='Subjective'))) / 2)
-    print("Aggregated label")
-    print('gpt4-human kappa score', (cohen_kappa_score(sub_df['label_1'], sub_df['gpt4_label']) +
-           cohen_kappa_score(sub_df['label_2'], sub_df['gpt4_label'])) / 2)
-    print('inter-human kappa score', cohen_kappa_score(sub_df['label_1'], sub_df['label_2']))
-    print('acc score: ', accuracy_score(sub_df['Golden'], sub_df['gpt4_label']))
-    print("\n===GPT-3.5===")
-    #sub_df = df.loc[(df['gpt-3.5'] < 1) | (df['gpt-3.5'] > 1.5), :]
-    sub_df = df
-    print("S1 label")
-    print('kappa score', (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-3.5-s1'], neg='No')) +
-           cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-3.5-s1'], neg='No'))) / 2)
-    print('acc score: ', accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-3.5-s1'], neg='No')))
-    print("S2 label")
-    print('kappa score', (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-3.5-s2'], neg=False)) +
-           cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-3.5-s2'], neg=False))) / 2)
-    print('acc score: ', accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-3.5-s2'], neg=False)))
-    print("S3 label")
-    print('kappa score', (
-                  (cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-3.5-s3-1'], neg='Subjective'))
-                   + cohen_kappa_score(sub_df['label_1'], mapping(sub_df['gpt-3.5-s3-2'], neg='Subjective'))) / 2
-          ) + (
-                  (cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-3.5-s3-1'], neg='Subjective'))
-                   + cohen_kappa_score(sub_df['label_2'], mapping(sub_df['gpt-3.5-s3-2'], neg='Subjective'))) / 2
-          ) / 2)
-    print('acc score', (accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-3.5-s3-1'], neg='Subjective'))
-                        + accuracy_score(sub_df['Golden'], mapping(sub_df['gpt-3.5-s3-2'], neg='Subjective'))) / 2)
-    print("Aggregated label")
-    print('3.5-human kappa', (cohen_kappa_score(sub_df['label_1'], sub_df['gpt35_label']) +
-           cohen_kappa_score(sub_df['label_2'], sub_df['gpt35_label'])) / 2)
-    print('human kappa', cohen_kappa_score(sub_df['label_1'], sub_df['label_2']))
-    print('acc score: ', accuracy_score(sub_df['Golden'], sub_df['gpt35_label']))
-    print('human acc: ', (accuracy_score(sub_df['Golden'], sub_df['label_1'])
-                          + accuracy_score(sub_df['Golden'], sub_df['label_2'])) / 2)
-    print("\n\n")
-
-    for model_name in ['gpt-3.5', 'gpt-4', 'zephyr', 'llama']:
-        golden = df.loc[(df[model_name] == 0) | (df[model_name] == 3), 'Golden'].to_list()
-        label_1 = df.loc[(df[model_name] == 0) | (df[model_name] == 3), 'label_1'].to_list()
-        label_2 = df.loc[(df[model_name] == 0) | (df[model_name] == 3), 'label_2'].to_list()
-        label = df.loc[(df[model_name] == 0) | (df[model_name] == 3), model_name].apply(lambda x: 0 if x == 0 else 1)
-        human_kappa = cohen_kappa_score(label_1, label_2)
-        ai_acc = accuracy_score(golden, label)
-        ai_kappa = (cohen_kappa_score(label, label_2) + cohen_kappa_score(label, label_1)) / 2
-        human_acc = (accuracy_score(golden, label_2) + accuracy_score(golden, label_1)) / 2
-        print('kappa of inconsistent samples', ai_kappa, human_kappa)
-        print('acc of inconsistent samples', ai_acc, human_acc)
-        golden = df.loc[(df[model_name] > 0) & (df[model_name] < 3), 'Golden'].to_list()
-        label_1 = df.loc[(df[model_name] > 0) & (df[model_name] < 3), 'label_1'].to_list()
-        label_2 = df.loc[(df[model_name] > 0) & (df[model_name] < 3), 'label_2'].to_list()
-        label = df.loc[(df[model_name] > 0) & (df[model_name] < 3), model_name].apply(lambda x: 0 if x <= 1.5 else 1)
-        human_kappa = cohen_kappa_score(label_1, label_2)
-        ai_acc = accuracy_score(golden, label)
-        ai_kappa = (cohen_kappa_score(label, label_2) + cohen_kappa_score(label, label_1)) / 2
-        human_acc = (accuracy_score(golden, label_2) + accuracy_score(golden, label_1)) / 2
-        print('kappa of perfect consistent samples', ai_kappa, human_kappa)
-        print('acc of perfect consistent samples', ai_acc, human_acc)
-        print('\n')
+    print(f'{prefix.upper().lstrip('-')} Accuracy score:',
+          scores_dict[f'{prefix}acc'])
+    print(f'{prefix.upper().lstrip('-')} Recall Score (negative): ',
+          scores_dict[f'{prefix}recall_neg'])
+    print(f'{prefix.upper().lstrip('-')} Precision Score (negative): ',
+          scores_dict[f'{prefix}precision_neg'])
+    print(f'{prefix.upper().lstrip('-')} Recall Score (positive): ',
+          scores_dict[f'{prefix}recall_pos'])
+    print(f'{prefix.upper().lstrip('-')} Precision Score (positive): ',
+          scores_dict[f'{prefix}precision_pos'])
+    print(f'{prefix.upper().lstrip('-')} Claim F1 Score: ',
+          scores_dict[f'{prefix}f1_claim'])
+    print(f'{prefix.upper().lstrip('-')} Non-Claim F1 Score: ',
+          scores_dict[f'{prefix}f1_nonclaim'])
+    print(f'{prefix.upper().lstrip('-')} Macro F1 Score: ',
+          scores_dict[f'{prefix}macro_f1'])
+    print(f'{prefix.upper().lstrip('-')} Macro Recall Score: ',
+          scores_dict[f'{prefix}macro_recall'])
+    print(f'{prefix.upper().lstrip('-')} Macro Precision Score: ',
+          scores_dict[f'{prefix}macro_precision'])
 
 
-def confusion(num_answer, model, data):
-    column_names = ['veri_Answer_' + str(i) for i in range(1, num_answer + 1)]
-    if data == 0:
-        df = pd.read_excel('data/CoT_self-consistency/policlaim_test_' + model + '_CoT.xlsx')[column_names + ['Golden']]
-    elif data == 1:
-        df = pd.read_excel('data/CoT_self-consistency/clef2021_test_' + model + '_CoT.xlsx')[column_names + ['Golden']]
-    np.random.seed(42)
-    rand_labels = np.random.randint(2, size=len(df))
-    df['random'] = rand_labels
+def main(df, save_to, verbose):
+    model_names = [x[:-3] for x in df.columns if x.endswith('-s1')]
+    if 'zephyr' in df and 'llama' in df:
+        model_names.extend(['zephyr', 'llama'])
+    df = compute_likelihood(df, model_names)
+    scores_list = []
 
-    def aggregate_func(row):
-        answer_list = []
-        num = len(column_names)
-        for name in column_names:
-            if row[name].startswith('Yes'):
-                answer_list.append(1)
-            else:
-                answer_list.append(0)
-        answer_sum = sum(answer_list)
-        if answer_sum <= num // 2:
-            aggregated_answer = 0
-            confusion_level = answer_sum
-        else:
-            aggregated_answer = 1
-            confusion_level = num - answer_sum
-        return aggregated_answer, confusion_level
+    print(f'Mean Gold label : {np.mean(df['Golden'])}')
 
-    df[['aggregated', 'confusion']] = df.apply(aggregate_func, axis=1, result_type='expand')
+    # Kappa scores can only be calculated if multiple Golden labels are present
+    if 'label_1' in df.columns and 'label_2' in df.columns:
+        compute_kappa = True
+    else:
+        compute_kappa = False
 
-    confusion_scores = []
-    random_scores = []
-    percentage = []
-    for i in range(num_answer // 2 + 1):
-        agg = df.loc[df['confusion'] == i, 'aggregated']
-        golden = df.loc[df['confusion'] == i, 'Golden']
-        rand = df.loc[df['confusion'] == i, 'random']
-        print('confusion level', i, accuracy_score(golden, agg), 'Random', accuracy_score(rand, agg), "Percentage {:.2f}".format(100 * len(agg) / len(df)))
-        confusion_scores.append(accuracy_score(golden, agg))
-        random_scores.append(accuracy_score(rand, agg))
-        percentage.append(round(100 * len(agg) / len(df), 2))
-    # print('majority-voted accuracy: ', confusion_scores)
-    # print('random scores: ', random_scores)
-    # print('percentage of each consistency level: ', percentage)
+    for model_name in model_names:
+        consensus_mask = df[model_name].isin([0, 3])
+
+        scores_dict = {
+            'model': model_name,
+            'consistency': 100 * consensus_mask.sum() / df[model_name].count()}
+
+        df[f'{model_name}_label'] = df[model_name].apply(
+            lambda x: 0 if x <= 1.5 else 1)
+        print(f'\n==={model_name}===')
+
+        # support original zephyr and llama result
+        if f'{model_name}-s1' not in df:
+            print('Accuracy', accuracy_score(
+                df['Golden'], df[f'{model_name}_label']))
+            if compute_kappa:
+                print('Kappa', (
+                    cohen_kappa_score(
+                        df['label_1'], df[f'{model_name}_label']
+                    ) + cohen_kappa_score(
+                        df['label_2'], df[f'{model_name}_label']
+                    ) / 2))
+            print('Macro-F1',
+                  f1_score(df['Golden'],
+                           df[f'{model_name}_label'], average='macro'))
+            continue
+
+        sub_df = df
+        # S1 Results ----------------------------------------------------------
+        print("S1 label")
+        if compute_kappa:
+            scores_dict['s1-kappa'] = (
+                cohen_kappa_score(
+                    sub_df['label_1'],
+                    mapping(sub_df[f'{model_name}-s1'], neg='No')
+                ) + cohen_kappa_score(
+                    sub_df['label_2'],
+                    mapping(sub_df[f'{model_name}-s1'], neg='No'))
+            ) / 2
+            print('S1- Kappa score', scores_dict['s1-kappa'])
+
+        metrics_for_label([mapping(sub_df[f'{model_name}-s1'], neg='No')],
+                          sub_df['Golden'], scores_dict, 's1-')
+
+        # S2 Results ----------------------------------------------------------
+        print("S2 label")
+        if compute_kappa:
+            scores_dict['s2-kappa'] = (
+                cohen_kappa_score(
+                    sub_df['label_1'],
+                    mapping(sub_df[f'{model_name}-s2'], neg=False)
+                ) + cohen_kappa_score(
+                    sub_df['label_2'],
+                    mapping(sub_df[f'{model_name}-s2'], neg=False))
+            ) / 2
+            print('S2- Kappa score', scores_dict['s2-kappa'])
+
+        metrics_for_label([mapping(sub_df[f'{model_name}-s2'], neg=False)],
+                          sub_df['Golden'], scores_dict, 's2-')
+
+        # S3 Results ----------------------------------------------------------
+        print("S3 label")
+        if compute_kappa:
+            scores_dict['s3-kappa'] = (
+                (cohen_kappa_score(
+                    sub_df['label_1'],
+                    mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
+                ) + cohen_kappa_score(
+                    sub_df['label_1'],
+                    mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
+                ) / 2
+            ) + (
+                (cohen_kappa_score(
+                    sub_df['label_2'],
+                    mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective')
+                ) + cohen_kappa_score(
+                    sub_df['label_2'],
+                    mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective'))
+                ) / 2
+            ) / 2
+            print('S3- Kappa score', scores_dict['s3-kappa'])
+
+        s3_labels = [
+            mapping(sub_df[f'{model_name}-s3-1'], neg='Subjective'),
+            mapping(sub_df[f'{model_name}-s3-2'], neg='Subjective')]
+        metrics_for_label(s3_labels, sub_df['Golden'], scores_dict, 's3-')
+
+        # Aggregated Results --------------------------------------------------
+        print("Aggregated label")
+        if compute_kappa:
+            scores_dict['agg-human-kappa'] = (
+                cohen_kappa_score(
+                    sub_df['label_1'], sub_df[f'{model_name}_label']
+                ) + cohen_kappa_score(
+                    sub_df['label_2'], sub_df[f'{model_name}_label'])) / 2
+            print(f'{model_name}-human kappa score',
+                  scores_dict['agg-human-kappa'])
+
+        metrics_for_label([sub_df[f'{model_name}_label']], sub_df['Golden'],
+                          scores_dict)
+
+        # Consistent Results --------------------------------------------------
+        print('Consistent Results')
+        print(f'Consistency {scores_dict['consistency']}')
+        sub_df = df[consensus_mask]  # Select only results with consensus vote
+        if compute_kappa:
+            scores_dict['con-human-kappa'] = (
+                cohen_kappa_score(
+                    sub_df['label_1'], sub_df[f'{model_name}_label']
+                ) + cohen_kappa_score(
+                    sub_df['label_2'], sub_df[f'{model_name}_label'])) / 2
+            print(f'CON {model_name}-human kappa score',
+                  scores_dict['con-human-kappa'])
+
+        metrics_for_label([sub_df[f'{model_name}_label']], sub_df['Golden'],
+                          scores_dict, 'con-')
+
+        scores_list.append(scores_dict)
+
+    if compute_kappa:
+        print('Human kappa', cohen_kappa_score(
+            sub_df['label_1'], sub_df['label_2']))
+        print('Human accuracy: ', (
+            accuracy_score(
+                sub_df['Golden'], sub_df['label_1']
+            ) + accuracy_score(
+                sub_df['Golden'], sub_df['label_2'])) / 2)
+
+    if save_to:
+        out_df = pd.DataFrame(scores_list)
+        if not verbose:
+            to_get = ['model', 'consistency', 'macro_f1', 'f1_claim', 'acc',
+                      'weighted_f1']
+            to_get.extend(['con-' + i for i in to_get[2:]])
+            if compute_kappa:
+                to_get.append('agg-human-kappa')
+            out_df = out_df.get(to_get)
+        out_df.to_csv(save_to, index=False)
+        print(f'Saved to {save_to}')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--data", type=int, default=0)
-    parser.add_argument("--num_answer", type=int, default=0)
-    parser.add_argument("--model", type=str, default='G3')
+    parser.add_argument('filename', help='Results file to compute scores for')
+    parser.add_argument('--save-to', '-s',
+                        help='Location to save results to (optional)')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='Save verbose results (versus just agg macro'
+                        'scores)')
     args = parser.parse_args()
-    if args.data == 0:
-        df = pd.read_excel('data/PoliClaim_test/policlaim_gpt_with_human_eval_merged.xlsx')
-    else:
-        df = pd.read_excel('data/CLEF-2021_test/CLEF2021_human_eval.xlsx')
-    if args.num_answer == 0:
-        main(df)
-    else:
-        confusion(args.num_answer, args.model, args.data)
+    df = load_file(args.filename)
+    verbose = args.verbose
+    main(df, args.save_to, verbose)
