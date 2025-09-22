@@ -7,7 +7,7 @@ Your task is to generate a set of 'master prompts' which produce an output in th
 
 Please respond only with the new prompts, formatted in the same way as they are input here.
 
-The four separate annotation guidelines are as follows:
+The five separate annotation guidelines are as follows:
 
 1.```
 A verifiable factual claim is a sentence claiming that something is true, and this can be verified using factual, verifiable information such as statistics, specific examples, or personal testimony.

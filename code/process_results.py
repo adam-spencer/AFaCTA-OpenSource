@@ -136,6 +136,7 @@ def main(args):
         # Concatenate dfs for the same model
         df_concat = pd.concat(dfs, ignore_index=True)
         df_concat = rename_and_filter_model_cols(df_concat, model_name=model)
+        df_concat = bool_s2_cols(df_concat)
         model_dfs.append(df_concat)
 
     # Join resultant dataframes

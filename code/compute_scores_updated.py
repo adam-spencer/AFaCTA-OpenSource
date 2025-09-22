@@ -9,6 +9,7 @@ from sklearn.metrics import (
     precision_score,
     f1_score)
 from process_results import load_file
+import re
 
 random.seed(42)
 
@@ -23,24 +24,35 @@ def compute_likelihood(df_to_eval, model_names):
         df_to_eval[f'{model}-s3-1'].fillna('Subjective')
         df_to_eval[f'{model}-s3-2'].fillna('Subjective')
         p1 = df_to_eval[f'{model}-s1'].apply(
-            lambda x: 1 if pd.notna(x) and "yes" in x.lower() else 0).values
+            lambda x: 1 if pd.notna(x) and "yes" in remove_thinking_tokens(x)
+            else 0).values
         p2 = []
         for i, c in zip(df_to_eval[f'{model}-s2'],
                         df_to_eval[f'{model}-category']):
-            if i or 'C0' not in c:
+            if i or (type(c) is not float and 'C0' not in c):
+                # print(type(i))
                 p2.append(1)
             else:
                 p2.append(0)
         p2 = np.array(p2)
         p3_1 = df_to_eval[f'{model}-s3-1'].apply(
-            lambda x: 1 if pd.notna(x) and "objective" in x.lower() else 0
+            lambda x: 1 if pd.notna(
+                x) and "objective" in remove_thinking_tokens(x) else 0
         ).values
         p3_2 = df_to_eval[f'{model}-s3-2'].apply(
-            lambda x: 1 if pd.notna(x) and "objective" in x.lower() else 0
+            lambda x: 1 if pd.notna(
+                x) and "objective" in remove_thinking_tokens(x) else 0
         ).values
 
         df_to_eval[model] = p1 + p2 + 0.5 * p3_1 + 0.5 * p3_2
     return df_to_eval
+
+
+def remove_thinking_tokens(text: str):
+    """Remove <think(ing)> block from model response."""
+    pattern = r'<think(ing)?>(.*?)</think(ing)?>'
+    cleaned_text = re.sub(pattern, '', text, flags=re.DOTALL).strip()
+    return cleaned_text.lower()
 
 
 def mapping(col, neg):
@@ -135,7 +147,11 @@ def main(df, save_to, verbose):
         compute_kappa = False
 
     for model_name in model_names:
-        scores_dict = {'model': model_name}
+        consensus_mask = df[model_name].isin([0, 3])
+
+        scores_dict = {
+            'model': model_name,
+            'consistency': 100 * consensus_mask.sum() / df[model_name].count()}
 
         df[f'{model_name}_label'] = df[model_name].apply(
             lambda x: 0 if x <= 1.5 else 1)
@@ -228,8 +244,24 @@ def main(df, save_to, verbose):
             print(f'{model_name}-human kappa score',
                   scores_dict['agg-human-kappa'])
 
-        metrics_for_label([sub_df[f'{model_name}_label']],
-                          sub_df['Golden'], scores_dict)
+        metrics_for_label([sub_df[f'{model_name}_label']], sub_df['Golden'],
+                          scores_dict)
+
+        # Consistent Results --------------------------------------------------
+        print('Consistent Results')
+        print(f'Consistency {scores_dict['consistency']}')
+        sub_df = df[consensus_mask]  # Select only results with consensus vote
+        if compute_kappa:
+            scores_dict['con-human-kappa'] = (
+                cohen_kappa_score(
+                    sub_df['label_1'], sub_df[f'{model_name}_label']
+                ) + cohen_kappa_score(
+                    sub_df['label_2'], sub_df[f'{model_name}_label'])) / 2
+            print(f'CON {model_name}-human kappa score',
+                  scores_dict['con-human-kappa'])
+
+        metrics_for_label([sub_df[f'{model_name}_label']], sub_df['Golden'],
+                          scores_dict, 'con-')
 
         scores_list.append(scores_dict)
 
@@ -245,8 +277,9 @@ def main(df, save_to, verbose):
     if save_to:
         out_df = pd.DataFrame(scores_list)
         if not verbose:
-            to_get = ['model', 'macro_f1', 'macro_precision', 'macro_recall',
-                      'f1_claim', 'acc', 'weighted_f1']
+            to_get = ['model', 'consistency', 'macro_f1', 'f1_claim', 'acc',
+                      'weighted_f1']
+            to_get.extend(['con-' + i for i in to_get[2:]])
             if compute_kappa:
                 to_get.append('agg-human-kappa')
             out_df = out_df.get(to_get)
